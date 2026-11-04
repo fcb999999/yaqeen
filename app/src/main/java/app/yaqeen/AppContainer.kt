@@ -128,6 +128,12 @@ class AppContainer(val context: Context) {
         )
     }
 
+    // ---- خدمات الميزات المشتركة (عقود بين الميزات؛ ينفّذها أصحابها) ----
+    val prayerTimes: app.yaqeen.feature.prayer.times.PrayerTimesService by lazy { app.yaqeen.feature.prayer.times.PrayerTimesService(this) }
+    val taskEngine: app.yaqeen.feature.tasks.TaskEngine by lazy { app.yaqeen.feature.tasks.TaskEngine(this) }
+    val readingTracker: app.yaqeen.feature.quran.plans.ReadingTracker by lazy { app.yaqeen.feature.quran.plans.ReadingTracker(this) }
+    val quranAudio: app.yaqeen.feature.quran.audio.QuranAudioController by lazy { app.yaqeen.feature.quran.audio.QuranAudioController(this) }
+
     suspend fun quran(): QuranData = QuranDataLoader.load(context)
     suspend fun adhkar(): AdhkarCatalog = AdhkarCatalogLoader.load(context)
 
