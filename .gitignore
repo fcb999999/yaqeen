@@ -1,0 +1,26 @@
+# Gradle / Android
+.gradle/
+build/
+app/build/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+build-out.txt
+
+# أسرار: ممنوع رفعها أبدًا
+keystore.properties
+*.jks
+*.keystore
+google-services.json
+service-account*.json
+*-firebase-adminsdk-*.json
+.env
+.env.*
+
+# بيانات مؤقتة
+tools/raw/
+node_modules/
+*.log

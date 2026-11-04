@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="yaqeen_ivory">#FAF8F4</color>
+    <color name="yaqeen_night">#0E1726</color>
+
+    <style name="Theme.Yaqeen" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/yaqeen_ivory</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:layoutDirection">rtl</item>
+    </style>
+</resources>

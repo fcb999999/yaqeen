@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">يقين</string>
+    <string name="app_name_en">YAQEEN</string>
+
+    <!-- التنقل الرئيسي -->
+    <string name="nav_home">الرئيسية</string>
+    <string name="nav_quran">القرآن</string>
+    <string name="nav_adhkar">الأذكار</string>
+    <string name="nav_prayer">الصلاة</string>
+    <string name="nav_more">المزيد</string>
+
+    <!-- قنوات الإشعارات -->
+    <string name="channel_adhan">الأذان</string>
+    <string name="channel_adhan_desc">إشعار دخول وقت الصلاة</string>
+    <string name="channel_prayer_reminder">تذكير قبل الصلاة والإقامة</string>
+    <string name="channel_wird">الورد القرآني</string>
+    <string name="channel_adhkar">الأذكار</string>
+    <string name="channel_tasks">المهام</string>
+    <string name="channel_day_end">ملخص نهاية اليوم</string>
+    <string name="channel_events">المناسبات الإسلامية</string>
+    <string name="channel_updates">تحديثات التطبيق</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- نسخ احتياطي تلقائي: بيانات المستخدم فقط (قاعدة البيانات المحلية).
+     لا يُنسخ معرّف الجهاز (حتى لا يتشارك جهازان المعرّف نفسه بعد الاستعادة) ولا الملفات المحمّلة. -->
+<full-backup-content>
+    <include domain="database" path="." />
+    <exclude domain="sharedpref" path="yaqeen_device.xml" />
+    <exclude domain="sharedpref" path="yaqeen_reminders.xml" />
+    <exclude domain="file" path="downloads/" />
+    <exclude domain="file" path="audio/" />
+    <exclude domain="file" path="datastore/" />
+</full-backup-content>

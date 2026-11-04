@@ -1,0 +1,78 @@
+rules_version = '2';
+
+// قواعد أمان Firestore لتطبيق يقين.
+// المبادئ:
+//  1) كل بيانات المستخدم تحت users/{uid}/... ولا يصل إليها أحد غير صاحبها (request.auth.uid == uid).
+//  2) لا يمكن إنشاء/تعديل وثيقة إلا إذا كان حقل uid بداخلها يساوي مسارها، وحقل id يساوي اسم الوثيقة.
+//  3) Last-Writer-Wins على الخادم: لا يُقبل تحديث بـ updatedAt أقدم من المخزَّن (تساوي مقبول لإعادة الإرسال).
+//  4) لا حذف فعلي أبدًا: الحذف يتم بشواهد (deleted=true) حتى تصل لبقية الأجهزة.
+//  5) app_versions للقراءة فقط من التطبيق، وتُكتب فقط من الخدمة الخلفية (Admin SDK يتجاوز القواعد).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // المجموعات المسموح بها تحت المستخدم
+    function allowedCollection(c) {
+      return c in [
+        'reading_progress', 'quran_bookmark_categories', 'quran_bookmarks', 'quran_plans',
+        'quran_plan_logs', 'quran_day_logs', 'adhkar_progress', 'adhkar_favorites',
+        'prayers_tracking', 'rawatib_tracking', 'custom_sunnah', 'daily_tasks',
+        'task_completions', 'calendar_events', 'user_settings', 'notification_settings',
+        'achievement_statistics'
+      ];
+    }
+
+    function validDoc(uid, docId) {
+      let d = request.resource.data;
+      return d.uid == uid
+          && d.id == docId
+          && d.updatedAt is int
+          && d.updatedAt > 0
+          && d.deviceId is string
+          && d.opId is string
+          && d.deleted is bool
+          && d.keys().size() <= 40;
+    }
+
+    match /users/{uid} {
+      // ملف المستخدم الشخصي (الاسم، البريد، الأجهزة...). لا يُحذف من التطبيق.
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && request.resource.data.uid == uid;
+      allow delete: if false;
+
+      match /{collection}/{docId} {
+        allow read: if isOwner(uid) && allowedCollection(collection);
+
+        allow create: if isOwner(uid)
+                      && allowedCollection(collection)
+                      && validDoc(uid, docId);
+
+        // Last-Writer-Wins: يرفض التحديث الأقدم.
+        allow update: if isOwner(uid)
+                      && allowedCollection(collection)
+                      && validDoc(uid, docId)
+                      && request.resource.data.updatedAt >= resource.data.updatedAt;
+
+        allow delete: if false;
+      }
+    }
+
+    // إصدارات التطبيق: قراءة فقط.
+    match /app_versions/{version} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // كل ما عدا ذلك محظور.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

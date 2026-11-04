@@ -1,0 +1,17 @@
+{
+  "generatedFrom": {
+    "quran-uthmani.json": "0df03e1d6da4fc8138208fec1688f2b416f0dd4ebbd514179f3e5e0fbaf4195f",
+    "quran-com-uthmani.json": "3754c592dd15d7047d5b4339737ad3171c5c1d431a8c3e4c1eee7781c135d58c",
+    "muyassar.json": "e409898887a10a92de554b364c12c56a59b9030f2b07df94578040af234b7153"
+  },
+  "outputs": {
+    "quran/quran.json": "6600eaf9131601825ad301f1792b74e1b9919c252808b53be3a1b4356c774a48",
+    "tafsir/ar.muyassar.json": "42481c409a6aabc2a7e63d74af3795704f38741de2480133a0949f3e59dfc04f"
+  },
+  "surahs": 114,
+  "ayahs": 6236,
+  "pages": 604,
+  "juz": 30,
+  "hizbQuarters": 240,
+  "sajdas": 15
+}
