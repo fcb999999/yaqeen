@@ -44,6 +44,9 @@ jobs:
       - name: Normalize gradle.properties (no BOM)
         run: sed -i '1s/^\xEF\xBB\xBF//' gradle.properties
 
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       - name: Read and validate version
         id: ver
         run: |
