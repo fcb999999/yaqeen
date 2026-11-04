@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -35,6 +37,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -141,7 +147,19 @@ fun ReaderPage(
         scroll.animateScrollTo(y.roundToInt().coerceAtLeast(0))
     }
 
-    Column(modifier) {
+    Column(
+        modifier.drawBehind {
+            // إطار رفيع حول الصفحة داخل الهامش كحدّ الورقة المطبوعة (لا يأخذ من عرض النص شيئًا)
+            val inset = 3.dp.toPx()
+            drawRoundRect(
+                palette.accent.copy(alpha = 0.28f),
+                topLeft = Offset(inset, inset),
+                size = androidx.compose.ui.geometry.Size(size.width - inset * 2f, size.height - inset * 2f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(10.dp.toPx()),
+                style = Stroke(1.dp.toPx()),
+            )
+        },
+    ) {
         CenteredCapped { PageHeader(data.info, palette, margin) }
         BoxWithConstraints(
             Modifier
@@ -310,36 +328,31 @@ private fun PageBody(
 
 @Composable
 private fun PageHeader(info: PageInfo, palette: ReaderPalette, margin: Dp) {
-    Column(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = margin, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "سورة ${QuranText.plainSurahName(info.surah.nameAr)}",
-                style = MaterialTheme.typography.labelMedium,
-                color = palette.muted,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                "الجزء ${ArabicText.indic(info.juz)} – الحزب ${ArabicText.indic(info.hizb)}",
-                style = MaterialTheme.typography.labelMedium,
-                color = palette.muted,
-                maxLines = 1,
-            )
-        }
-        Box(
-            Modifier
-                .padding(horizontal = margin)
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(palette.muted.copy(alpha = 0.25f)),
-        )
+    // ترويسة مزخرفة: اسم السورة والجزء/الحزب في إطارين مدوّرين تصل بينهما خطوط ذهبية رفيعة
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = margin, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        HeaderPill("سورة ${QuranText.plainSurahName(info.surah.nameAr)}", palette, Modifier.weight(1f, fill = false))
+        Box(Modifier.weight(1f).padding(horizontal = 8.dp).height(1.dp).background(palette.accent.copy(alpha = 0.35f)))
+        HeaderPill("الجزء ${ArabicText.indic(info.juz)} – الحزب ${ArabicText.indic(info.hizb)}", palette)
     }
+}
+
+@Composable
+private fun HeaderPill(label: String, palette: ReaderPalette, modifier: Modifier = Modifier) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+        color = palette.accent,
+        modifier = modifier
+            .border(1.dp, palette.accent.copy(alpha = 0.55f), RoundedCornerShape(50))
+            .padding(horizontal = 12.dp, vertical = 3.dp),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable
@@ -351,14 +364,18 @@ private fun PageFooter(page: Int, palette: ReaderPalette) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        Box(Modifier.weight(1f).height(1.dp).background(palette.muted.copy(alpha = 0.25f)))
-        Text(
-            ArabicText.indic(page),
-            style = MaterialTheme.typography.labelLarge,
-            color = palette.muted,
-            modifier = Modifier.padding(horizontal = 14.dp),
-        )
-        Box(Modifier.weight(1f).height(1.dp).background(palette.muted.copy(alpha = 0.25f)))
+        Box(Modifier.weight(1f).height(1.dp).background(palette.accent.copy(alpha = 0.35f)))
+        // رقم الصفحة داخل وردة مزخرفة كما في المصاحف المطبوعة
+        Box(Modifier.padding(horizontal = 10.dp).size(40.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) { drawRosette(palette.accent, center, size.minDimension / 2f * 0.94f) }
+            Text(
+                ArabicText.indic(page),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                color = palette.accent,
+                maxLines = 1,
+            )
+        }
+        Box(Modifier.weight(1f).height(1.dp).background(palette.accent.copy(alpha = 0.35f)))
     }
 }
 
@@ -370,14 +387,18 @@ private fun HizbMarkRow(label: String, palette: ReaderPalette) {
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.weight(1f).height(1.dp).background(palette.accent.copy(alpha = 0.5f)))
+        Box(Modifier.weight(1f).height(1.dp).background(palette.accent.copy(alpha = 0.45f)))
         Text(
             label,
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
             color = palette.accent,
-            modifier = Modifier.padding(horizontal = 12.dp),
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+                .background(palette.accent.copy(alpha = 0.08f), RoundedCornerShape(50))
+                .border(1.dp, palette.accent.copy(alpha = 0.55f), RoundedCornerShape(50))
+                .padding(horizontal = 14.dp, vertical = 3.dp),
         )
-        Box(Modifier.weight(1f).height(1.dp).background(palette.accent.copy(alpha = 0.5f)))
+        Box(Modifier.weight(1f).height(1.dp).background(palette.accent.copy(alpha = 0.45f)))
     }
 }
 
@@ -387,9 +408,33 @@ private fun SurahBanner(surah: Surah, showBismillah: Boolean, bismillah: String,
         Box(
             Modifier
                 .fillMaxWidth()
-                .border(1.5.dp, palette.accent, RoundedCornerShape(12.dp))
-                .background(palette.accent.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                .padding(vertical = 10.dp, horizontal = 12.dp),
+                .background(palette.accent.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+                .drawBehind {
+                    // إطار مزدوج (خارجي سميك وداخلي رفيع) ووردتان عند الطرفين كترويسة السور في المصحف المطبوع
+                    val outer = 1.6.dp.toPx()
+                    val gap = 5.dp.toPx()
+                    val corner = 14.dp.toPx()
+                    drawRoundRect(
+                        palette.accent,
+                        topLeft = Offset(outer / 2f, outer / 2f),
+                        size = androidx.compose.ui.geometry.Size(size.width - outer, size.height - outer),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner),
+                        style = Stroke(outer),
+                    )
+                    val inset = outer + gap
+                    drawRoundRect(
+                        palette.accent.copy(alpha = 0.6f),
+                        topLeft = Offset(inset, inset),
+                        size = androidx.compose.ui.geometry.Size(size.width - inset * 2f, size.height - inset * 2f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner - 3.dp.toPx()),
+                        style = Stroke(0.8.dp.toPx()),
+                    )
+                    val r = 11.dp.toPx()
+                    val edge = inset + r + 6.dp.toPx()
+                    drawRosette(palette.accent, Offset(edge, size.height / 2f), r)
+                    drawRosette(palette.accent, Offset(size.width - edge, size.height / 2f), r)
+                }
+                .padding(vertical = 14.dp, horizontal = 44.dp),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -421,6 +466,19 @@ private fun SurahBanner(surah: Surah, showBismillah: Boolean, bismillah: String,
     }
 }
 
+/** قطر شارة الآية بالنسبة لحجم الخط (٣ خانات تُكبَّر قليلًا لتبقى الأرقام مقروءة). */
+private const val BADGE_EM = 1.15f
+private const val BADGE_EM_WIDE = 1.35f
+
+/** مركز الشارة فوق خط الأساس بهذا الكسر من حجم الخط (مركز جسم الحروف العربية لا مركز السطر). */
+private const val BADGE_ABOVE_BASELINE = 0.24f
+
+/** ذيل صغير بعد الوردة (جهة نهاية السطر)، ومسافة أمان قبلها (جهة الكلمة السابقة) تفوق تجاوز ذيول خط المصحف. */
+private const val BADGE_TAIL_EM = 0.08f
+private const val BADGE_CLEARANCE_EM = 0.62f
+
+private fun badgeEm(number: Int) = if (number >= 100) BADGE_EM_WIDE else BADGE_EM
+
 @Composable
 private fun AyahRunText(
     ayahs: List<Ayah>,
@@ -439,7 +497,7 @@ private fun AyahRunText(
     val (plain, spans) = formatted
     val text = remember(plain, spans, selectedId, focusId, playingId, palette) {
         buildAnnotatedString {
-            // كل علامة نهاية آية (رمز واحد في النص) تُستبدل بشارة تُرسم بالكود في مكانها
+            // علامة نهاية كل آية رمز واحد في النص يحجز مكان الشارة (فيعمل التباعد المضبوط للأسطر على الكلمات والشارة معًا)
             var pos = 0
             for (s in spans) {
                 append(plain.substring(pos, s.markerStart))
@@ -455,20 +513,27 @@ private fun AyahRunText(
             }
         }
     }
-    val badgeSp = style.fontSize.value * 1.2f
-    val inline = remember(spans, badgeSp, bookmarkColors, palette) {
+    val fontSp = style.fontSize.value
+    // الفراغ المحجوز فقط (محتواه فارغ): الشارة نفسها تُرسم فوق النص من موضع الرمز الفعلي بعد التخطيط؛
+    // لأن موضع المحتوى المضمَّن لا يراعي تباعد المحاذاة المضبوطة (Justify) فكان يتراكب مع الكلمة السابقة.
+    val inline = remember(spans, fontSp) {
         spans.associate { s ->
+            val side = fontSp * badgeEm(s.number)
             markerId(s.ayahId) to InlineTextContent(
-                // العرض أكبر من الارتفاع قليلًا: مسافة حول الوردة حتى لا تلامس ذيول الحروف المجاورة
-                Placeholder((badgeSp * 1.55f).sp, badgeSp.sp, PlaceholderVerticalAlign.TextCenter),
-            ) {
-                AyahBadge(s.number, bookmarkColors[s.ayahId] ?: palette.accent)
-            }
+                Placeholder((side + fontSp * (BADGE_TAIL_EM + BADGE_CLEARANCE_EM)).sp, side.sp, PlaceholderVerticalAlign.TextCenter),
+            ) { }
         }
     }
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
     val tap by rememberUpdatedState(onTap)
     val bgTap by rememberUpdatedState(onBackgroundTap)
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val fontPx = with(density) { style.fontSize.toPx() }
+    // أرقام الشارات تُقاس مرة واحدة لكل صفحة (لا في كل إطار رسم، فالتمرير التلقائي يرسم ٦٠ إطارًا في الثانية)
+    val digitLayouts = remember(spans, fontPx, measurer, density) {
+        spans.associate { s -> s.ayahId to measureBadgeDigits(measurer, density, s.number, fontPx * badgeEm(s.number)) }
+    }
     Text(
         text = text,
         style = style,
@@ -477,14 +542,31 @@ private fun AyahRunText(
             layout = it
             onLayout(it)
         },
-        modifier = modifier.pointerInput(spans, ayahs) {
-            detectTapGestures { pos ->
-                val l = layout
-                val id = if (l != null) RunFormat.ayahAt(spans, l.getOffsetForPosition(pos)) else null
-                val ayah = id?.let { i -> ayahs.firstOrNull { it.id == i } }
-                if (ayah != null) tap(ayah) else bgTap()
+        modifier = modifier
+            .pointerInput(spans, ayahs) {
+                detectTapGestures { pos ->
+                    val l = layout
+                    val id = if (l != null) RunFormat.ayahAt(spans, l.getOffsetForPosition(pos)) else null
+                    val ayah = id?.let { i -> ayahs.firstOrNull { it.id == i } }
+                    if (ayah != null) tap(ayah) else bgTap()
+                }
             }
-        },
+            .drawWithContent {
+                // الشارة تُرسم خلف النص: ذيول الحروف تتجاوز عرض الكلمة المقيس فلا تغطيها الشارة أبدًا
+                val l = layout
+                if (l != null) {
+                    for (s in spans) {
+                        val box = runCatching { l.getBoundingBox(s.markerStart) }.getOrNull() ?: continue
+                        val line = l.getLineForOffset(s.markerStart)
+                        val d = fontPx * badgeEm(s.number)
+                        // الوردة ملاصقة لطرف الصندوق البعيد عن الكلمة السابقة، والباقي مسافة أمان
+                        val center = Offset(box.left + fontPx * BADGE_TAIL_EM + d / 2f, l.getLineBaseline(line) - fontPx * BADGE_ABOVE_BASELINE)
+                        val digits = digitLayouts[s.ayahId] ?: continue
+                        drawBadge(digits, bookmarkColors[s.ayahId] ?: palette.accent, center, d)
+                    }
+                }
+                drawContent()
+            },
     )
 }
 
@@ -492,37 +574,46 @@ private fun markerId(ayahId: Int) = "m$ayahId"
 
 /**
  * شارة نهاية الآية: وردة مزخرفة بحافة متموجة ودائرة داخلية، يتوسطها رقم الآية بالأرقام الهندية.
- * تُرسم بالكود فتظهر بنفس الشكل على كل الأجهزة (لا تعتمد على تشكيل الخط للرمز U+06DD).
+ * تُرسم بالكود فتظهر بنفس الشكل على كل الأجهزة (لا تعتمد على تشكيل الخط للرمز U+06DD)،
+ * ويُصغَّر الرقم تلقائيًا حتى يتّسع داخل الدائرة الداخلية مهما كان عدد خاناته.
  */
-@Composable
-private fun AyahBadge(number: Int, color: Color) {
+/** يقيس رقم الآية بحجم يتّسع داخل الدائرة الداخلية للوردة (يُصغَّر للأرقام الثلاثية). */
+private fun measureBadgeDigits(measurer: TextMeasurer, density: androidx.compose.ui.unit.Density, number: Int, diameter: Float): TextLayoutResult {
     val digits = ArabicText.indic(number)
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) { drawRosette(color) }
-        val base = with(LocalDensity.current) { maxHeight.toSp() }
-        val factor = if (digits.length >= 3) 0.34f else 0.44f
-        val size = base * factor
-        Text(
-            digits,
-            color = color,
-            style = TextStyle(
-                fontFamily = YaqeenFonts.Ui,
-                fontWeight = FontWeight.Medium,
-                fontSize = size,
-                lineHeight = size,
-                textAlign = TextAlign.Center,
-                platformStyle = PlatformTextStyle(includeFontPadding = false),
-                lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
-            ),
-            maxLines = 1,
-            softWrap = false,
-        )
+    val maxWidth = diameter * 0.62f
+    fun measure(px: Float) = measurer.measure(
+        digits,
+        style = TextStyle(
+            fontFamily = YaqeenFonts.Ui,
+            fontWeight = FontWeight.Medium,
+            fontSize = with(density) { px.toSp() },
+            lineHeight = with(density) { px.toSp() },
+            platformStyle = PlatformTextStyle(includeFontPadding = false),
+            lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
+        ),
+        maxLines = 1,
+        softWrap = false,
+    )
+    var px = diameter * 0.46f
+    var m = measure(px)
+    if (m.size.width > maxWidth) {
+        px *= maxWidth / m.size.width
+        m = measure(px)
     }
+    return m
 }
 
-private fun DrawScope.drawRosette(color: Color) {
-    val c = Offset(size.width / 2f, size.height / 2f)
-    val radius = size.minDimension / 2f * 0.95f
+private fun DrawScope.drawBadge(digits: TextLayoutResult, color: Color, center: Offset, diameter: Float) {
+    drawRosette(color, center, diameter / 2f * 0.95f)
+    val px = digits.layoutInput.style.fontSize.toPx()
+    drawText(
+        digits,
+        color = color,
+        topLeft = Offset(center.x - digits.size.width / 2f, center.y + 0.34f * px - digits.firstBaseline),
+    )
+}
+
+private fun DrawScope.drawRosette(color: Color, c: Offset, radius: Float) {
     val lobes = 12
     val amp = 0.07f
     val steps = 180
@@ -537,5 +628,5 @@ private fun DrawScope.drawRosette(color: Color) {
     path.close()
     drawPath(path, color.copy(alpha = 0.10f))
     drawPath(path, color, style = Stroke(width = radius * 0.07f))
-    drawCircle(color.copy(alpha = 0.55f), radius = radius * 0.70f, style = Stroke(width = radius * 0.035f))
+    drawCircle(color.copy(alpha = 0.55f), center = c, radius = radius * 0.70f, style = Stroke(width = radius * 0.035f))
 }

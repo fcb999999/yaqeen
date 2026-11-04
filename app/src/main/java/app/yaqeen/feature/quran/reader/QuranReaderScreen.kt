@@ -93,7 +93,9 @@ import app.yaqeen.core.ArabicText
 import app.yaqeen.data.quran.Ayah
 import app.yaqeen.data.quran.QuranData
 import app.yaqeen.data.settings.Settings
+import app.yaqeen.feature.journey.DayTicker
 import app.yaqeen.feature.quran.QuranRoutes
+import app.yaqeen.feature.quran.plans.PlanMath
 import app.yaqeen.feature.quran.bookmarks.BookmarkEditorSheet
 import app.yaqeen.feature.quran.audio.QuranMiniPlayer
 import app.yaqeen.feature.quran.tafsir.TafsirSheet
@@ -170,6 +172,13 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
     var contPage by remember { mutableIntStateOf(savedPage) }
     val currentPage = if (continuous) contPage else pagerState.currentPage + 1
     val fitEnabled = prefs.fitPage && LocalConfiguration.current.screenWidthDp >= 600
+
+    // ورد اليوم: كم بقي من مقدار اليوم ومن الورد كله (يتحدّث فور احتساب الصفحات المقروءة)
+    val wirdMath = remember(quran) { PlanMath(quran) }
+    val today by remember { DayTicker.today(c.clock) }.collectAsState(initial = c.clock.today())
+    val activePlans by remember { c.db.quranPlans().observeActive() }.collectAsState(initial = emptyList())
+    val planLogs by remember(today) { c.db.quranPlanLogs().observeRange(today.toString(), today.toString()) }.collectAsState(initial = emptyList())
+    val wird = remember(wirdMath, activePlans, planLogs, today) { WirdBarLogic.build(wirdMath, activePlans, planLogs, today.toString()) }
 
     var immersive by rememberSaveable { mutableStateOf(prefs.startFullscreen) }
     var sheet by remember { mutableStateOf(ReaderSheet.None) }
@@ -322,20 +331,23 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
     ) {
         Column(Modifier.fillMaxSize()) {
             AnimatedVisibility(visible = !immersive) {
-                ReaderTopBar(
-                    title = "سورة ${QuranText.plainSurahName(info.surah.nameAr)}",
-                    subtitle = "صفحة ${ArabicText.indic(currentPage)} – الجزء ${ArabicText.indic(info.juz)}",
-                    menuOpen = menuOpen,
-                    onMenu = { menuOpen = it },
-                    onBack = { nav.popBackStack() },
-                    onSearch = { nav.navigate(QuranRoutes.SEARCH) },
-                    onIndex = { nav.navigate(QuranRoutes.INDEX) },
-                    onJump = { openSheet(ReaderSheet.Jump) },
-                    onSettings = { openSheet(ReaderSheet.Settings) },
-                    onBookmarks = { nav.navigate(QuranRoutes.BOOKMARKS) },
-                    onPlans = { nav.navigate(Routes.quranPlans()) },
-                    onDownloads = { nav.navigate(QuranRoutes.DOWNLOADS) },
-                )
+                Column {
+                    ReaderTopBar(
+                        title = "سورة ${QuranText.plainSurahName(info.surah.nameAr)}",
+                        subtitle = "صفحة ${ArabicText.indic(currentPage)} – الجزء ${ArabicText.indic(info.juz)}",
+                        menuOpen = menuOpen,
+                        onMenu = { menuOpen = it },
+                        onBack = { nav.popBackStack() },
+                        onSearch = { nav.navigate(QuranRoutes.SEARCH) },
+                        onIndex = { nav.navigate(QuranRoutes.INDEX) },
+                        onJump = { openSheet(ReaderSheet.Jump) },
+                        onSettings = { openSheet(ReaderSheet.Settings) },
+                        onBookmarks = { nav.navigate(QuranRoutes.BOOKMARKS) },
+                        onPlans = { nav.navigate(Routes.quranPlans()) },
+                        onDownloads = { nav.navigate(QuranRoutes.DOWNLOADS) },
+                    )
+                    wird?.let { w -> WirdStrip(w, onClick = { nav.navigate(Routes.quranPlans(w.planId)) }) }
+                }
             }
 
             Box(
