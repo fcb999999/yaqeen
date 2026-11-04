@@ -477,7 +477,7 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
                     closeSheet()
                     scope.launch {
                         try {
-                            AyahShare.shareImage(context, selAyah.text, surah.nameAr, surah.number, selAyah.number)
+                            AyahShare.shareImage(context, QuranText.forHafsFont(selAyah.text), surah.nameAr, surah.number, selAyah.number)
                         } catch (e: kotlinx.coroutines.CancellationException) {
                             throw e
                         } catch (e: Throwable) {

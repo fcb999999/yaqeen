@@ -1,0 +1,34 @@
+KFGQPC HAFS Uthmanic Script (app/src/main/res/font/kfgqpc_hafs.ttf)
+Version 0.18 — King Fahd Glorious Quran Printing Complex, AlMadinah AlMunawarrah
+http://fonts.qurancomplex.gov.sa/
+
+The font file is bundled UNMODIFIED (SHA-256 A0636E68E375AF9552470D67773936F54D536E6586CE2608311B2FE7F9CBEC3A).
+The app using it is free of charge; the font is not sold, modified, altered, translated or reverse engineered.
+
+Copy obtained from the open-source quran.com project
+(https://github.com/quran/quran.com-frontend-next, public/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.ttf).
+The official site was unreachable at the time (HTTP 404/503); the license below is the one embedded in the
+font file itself (name table, ID 0 and ID 13), reproduced verbatim:
+
+--- Copyright (name ID 0) ---
+The digitally signed machine readable Typeface(Font) licensed to you is copyrighted, (2010), King Fahd Glorious Quran Printing Complex.
+ISBN: 978-603-8010-15-0, Accession No. 1430/7278
+All rights reserved. This Font is the property of King Fahd Glorious Quran Printing Complex, and may not be reproduced, modified without the express written approval of King Fahd Glorious Quran Printing Complex.
+
+--- License (name ID 13) ---
+ELECTRONIC END-USER LICENSE AGREEMENT
+
+By installing this Font You accept all the terms and conditions of this Agreement.
+
+Copyright (c) 2010 by King Fahd Glorious Quran Printing Complex (KFGQPC), AlMadinah AlMunawarrah, Kingdom of Saudi Arabia. All Rights Reserved. KFGQPC retains full title and ownership of this Typeface both as artwork and font software. This Agreement does not grant you any intellectual property rights in the Font.
+
+Permission is hereby granted, Free of Cost, to any person obtaining a copy of this Font accompanying this license, the rights to Use, Copy, Distribute, subject to the following conditions:
+
+1.    The Font Software cannot be Sold, Modified, Altered, Translated, Reverse Engineered, Decompiled, Disassembled, Reproduced or Attempted to discover the Source Code of this Font in no means.
+
+2.    The Font Software is provided "AS IS", and KFGQPC makes no warranties as to its use or performance, fitness for a particular purpose. KFGQPC does not and cannot warrant the performance or results you may obtain by using the Font. In no event shall KFGQPC be liable for any Claims, Damages or other Liability, including any Damages, arising from, out of the use or inability to use the Font or from other dealings in the Font.
+
+Note: the copyright line and condition 1 also mention "reproduced". The permission paragraph explicitly grants Use, Copy and
+Distribute free of cost; the project reads condition 1 as forbidding altered or commercial reproduction of the font itself.
+If KFGQPC requires written approval for app embedding, the font must be removed and the app falls back to Amiri Quran
+(app/src/main/res/font/amiri_quran.ttf, OFL), which is still bundled.

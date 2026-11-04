@@ -112,7 +112,7 @@ fun AyahActionsSheet(
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                ayah.text,
+                QuranText.forHafsFont(ayah.text),
                 style = YaqeenTextStyles.quran(22f, 1.8f).copy(color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center),
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis,
@@ -179,7 +179,7 @@ fun ReaderSettingsContent(c: AppContainer, prefs: ReaderPrefs, bismillah: String
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                bismillah,
+                QuranText.forHafsFont(bismillah),
                 style = YaqeenTextStyles.quran(font, line).copy(color = palette.text, textAlign = TextAlign.Center),
             )
         }

@@ -136,7 +136,7 @@ fun TafsirSheet(c: AppContainer, ayahId: Int, onDismiss: () -> Unit) {
                 }
                 item("ayah") {
                     YaqeenCard(Modifier.fillMaxWidth()) {
-                        Text(a.text, style = YaqeenTextStyles.quran(24f, 1.9f).copy(textAlign = TextAlign.Center), modifier = Modifier.fillMaxWidth())
+                        Text(app.yaqeen.feature.quran.reader.QuranText.forHafsFont(a.text), style = YaqeenTextStyles.quran(24f, 1.9f).copy(textAlign = TextAlign.Center), modifier = Modifier.fillMaxWidth())
                     }
                 }
                 item("edition") {

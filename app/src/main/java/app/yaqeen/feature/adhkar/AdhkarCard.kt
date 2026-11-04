@@ -84,7 +84,7 @@ fun AdhkarCard(
     val progress = ui.progress
     val isQuran = item.quranRef.isNotBlank()
     val textStyle = if (isQuran) {
-        YaqeenTextStyles.quran(prefs.textSize).copy(textAlign = TextAlign.Center)
+        YaqeenTextStyles.quranAmiri(prefs.textSize).copy(textAlign = TextAlign.Center)
     } else {
         YaqeenTextStyles.adhkar(prefs.textSize)
     }

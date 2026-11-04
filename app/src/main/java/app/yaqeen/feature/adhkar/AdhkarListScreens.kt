@@ -54,7 +54,7 @@ import app.yaqeen.ui.theme.YaqeenTextStyles
 /** بطاقة ذكر مختصرة في القوائم: القسم + معاينة النص. */
 @Composable
 private fun AdhkarRowCard(row: AdhkarRow, onClick: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
-    val style = (if (row.item.quranRef.isNotBlank()) YaqeenTextStyles.quran(18f, 1.7f) else YaqeenTextStyles.adhkar(18f, 1.7f))
+    val style = (if (row.item.quranRef.isNotBlank()) YaqeenTextStyles.quranAmiri(18f, 1.7f) else YaqeenTextStyles.adhkar(18f, 1.7f))
         .copy(textAlign = TextAlign.Start)
     YaqeenCard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(verticalAlignment = Alignment.Top) {

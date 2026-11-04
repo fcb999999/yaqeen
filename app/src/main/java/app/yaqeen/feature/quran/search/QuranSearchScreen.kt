@@ -164,7 +164,7 @@ private fun ResultCard(quran: QuranData, a: Ayah, query: String, onClick: () -> 
     val text = remember(a.id, query, hlBg, hlFg) {
         val ranges = SearchHighlight.ranges(a.text, query)
         buildAnnotatedString {
-            append(a.text)
+            append(app.yaqeen.feature.quran.reader.QuranText.forHafsFont(a.text))
             for (r in ranges) addStyle(SpanStyle(background = hlBg, color = hlFg), r.first, r.last + 1)
         }
     }

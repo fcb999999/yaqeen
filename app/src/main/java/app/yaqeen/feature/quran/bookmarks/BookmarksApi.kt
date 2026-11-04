@@ -214,7 +214,7 @@ private fun BookmarkCard(
                     IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, "حذف العلامة") }
                 }
                 Text(
-                    ayah.text, style = YaqeenTextStyles.quran(18f, 1.8f), maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    app.yaqeen.feature.quran.reader.QuranText.forHafsFont(ayah.text), style = YaqeenTextStyles.quran(18f, 1.8f), maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(end = 8.dp),
                 )
                 if (b.note.isNotBlank()) {
@@ -367,7 +367,7 @@ fun BookmarkEditorSheet(c: AppContainer, surah: Int, ayah: Int, onDismiss: () ->
                             style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(Modifier.height(6.dp))
-                        Text(a.text, style = YaqeenTextStyles.quran(20f, 1.8f), maxLines = 4, overflow = TextOverflow.Ellipsis)
+                        Text(app.yaqeen.feature.quran.reader.QuranText.forHafsFont(a.text), style = YaqeenTextStyles.quran(20f, 1.8f), maxLines = 4, overflow = TextOverflow.Ellipsis)
                     }
                     OutlinedTextField(value = title, onValueChange = { title = it.take(80) }, singleLine = true, label = { Text("العنوان (اختياري)") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = note, onValueChange = { note = it.take(1000) }, label = { Text("ملاحظة (اختيارية)") }, minLines = 2, maxLines = 5, modifier = Modifier.fillMaxWidth())

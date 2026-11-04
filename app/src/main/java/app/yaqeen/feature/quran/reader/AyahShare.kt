@@ -61,7 +61,7 @@ object AyahCardRenderer {
     private const val MAX_TEXT_HEIGHT = 1500
 
     fun render(context: Context, ayahText: String, surahNameAr: String, surahNumber: Int, ayahNumber: Int): File {
-        val quranFont = ResourcesCompat.getFont(context, R.font.amiri_quran) ?: Typeface.DEFAULT
+        val quranFont = ResourcesCompat.getFont(context, R.font.kfgqpc_hafs) ?: Typeface.DEFAULT
         val uiFont = ResourcesCompat.getFont(context, R.font.plex_arabic_medium) ?: Typeface.DEFAULT_BOLD
 
         val royal = YaqeenColors.RoyalBlue.toArgb()

@@ -171,7 +171,7 @@ private fun SurahList(quran: QuranData, query: String, onClick: (Surah) -> Unit)
                 NumberBadge(ArabicText.indic(s.number))
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(s.nameAr, style = NameStyle, color = MaterialTheme.colorScheme.onSurface)
+                    Text(app.yaqeen.feature.quran.reader.QuranText.forHafsFont(s.nameAr), style = NameStyle, color = MaterialTheme.colorScheme.onSurface)
                     Text(
                         "${if (s.meccan) "مكية" else "مدنية"} – ${ArabicText.indic(s.ayahCount)} آية",
                         style = MaterialTheme.typography.bodySmall,
@@ -243,7 +243,7 @@ private fun StartRow(badge: String, title: String, quran: QuranData, ayah: Ayah,
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             // بداية المقطع: أول آية فيه كما هي (سطر واحد)
-            Text(ayah.text, style = SnippetStyle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(app.yaqeen.feature.quran.reader.QuranText.forHafsFont(ayah.text), style = SnippetStyle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 "سورة ${QuranText.plainSurahName(quran.surah(ayah.surah).nameAr)} – الآية ${ArabicText.indic(ayah.number)}",
                 style = MaterialTheme.typography.bodySmall,

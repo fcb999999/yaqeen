@@ -299,7 +299,9 @@ private fun PageBody(
         }
     }
     val style = remember(prefs.fontSize, prefs.lineSpacing, palette) {
-        YaqeenTextStyles.quran(prefs.fontSize, prefs.lineSpacing).copy(color = palette.text)
+        // محاذاة إلى اليمين لا "ضبط": في الأسطر المضبوطة يحسب أندرويد موضع الشارة بتباعد قد لا يطبّقه فعلًا
+        // (فتقع الشارة فوق الكلمة السابقة). المحاذاة البسيطة تجعل موضع الشارة مطابقًا لما يُرسم دائمًا.
+        YaqeenTextStyles.quran(prefs.fontSize, prefs.lineSpacing).copy(color = palette.text, textAlign = TextAlign.Start)
     }
     val onTap by rememberUpdatedState(onAyahTap)
     val onBg by rememberUpdatedState(onBackgroundTap)
@@ -454,7 +456,7 @@ private fun SurahBanner(surah: Surah, showBismillah: Boolean, bismillah: String,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "سُورَةُ ${surah.nameAr}",
+                    QuranText.forHafsFont("سُورَةُ ${surah.nameAr}"),
                     style = TextStyle(
                         fontFamily = YaqeenFonts.Quran,
                         fontSize = (fontSize * 0.9f).sp,
@@ -473,7 +475,7 @@ private fun SurahBanner(surah: Surah, showBismillah: Boolean, bismillah: String,
         if (showBismillah) {
             Spacer(Modifier.height(8.dp))
             Text(
-                bismillah,
+                QuranText.forHafsFont(bismillah),
                 style = YaqeenTextStyles.quran(fontSize, 1.7f).copy(color = palette.text, textAlign = TextAlign.Center),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -515,11 +517,11 @@ private fun AyahRunText(
             // علامة نهاية كل آية رمز واحد في النص يحجز مكان الشارة (فيعمل التباعد المضبوط للأسطر على الكلمات والشارة معًا)
             var pos = 0
             for (s in spans) {
-                append(plain.substring(pos, s.markerStart))
+                append(QuranText.forHafsFont(plain.substring(pos, s.markerStart)))
                 appendInlineContent(markerId(s.ayahId), QuranText.MARKER_PLACEHOLDER.toString())
                 pos = s.end
             }
-            append(plain.substring(pos))
+            append(QuranText.forHafsFont(plain.substring(pos)))
             for (s in spans) {
                 when (s.ayahId) {
                     playingId -> addStyle(SpanStyle(background = palette.accent.copy(alpha = 0.40f)), s.start, s.end)
@@ -722,14 +724,20 @@ private fun DrawScope.drawCartouche(p: ReaderPalette) {
 private fun NoorPageHeader(info: PageInfo, palette: ReaderPalette, margin: Dp) {
     NoorCartouche(palette, Modifier.fillMaxWidth().padding(horizontal = margin, vertical = 8.dp)) {
         Text(
-            "${juzName(info.juz)} | الحزب ${ArabicText.indic(info.hizb)}",
+            // خط حفص يرسم الأرقام زخرفةً (كأرقام الآيات)، فرقم الحزب بخط الواجهة
+            buildAnnotatedString {
+                append("${juzName(info.juz)} | الحزب ")
+                pushStyle(SpanStyle(fontFamily = YaqeenFonts.Ui, fontSize = 14.sp))
+                append(ArabicText.indic(info.hizb))
+                pop()
+            },
             style = noorLabelStyle(palette),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
         Spacer(Modifier.weight(1f))
-        Text("سُورَةُ ${info.surah.nameAr}", style = noorLabelStyle(palette), maxLines = 1)
+        Text(QuranText.forHafsFont("سُورَةُ ${info.surah.nameAr}"), style = noorLabelStyle(palette), maxLines = 1)
     }
 }
 
@@ -759,7 +767,7 @@ private fun NoorSurahBanner(surah: Surah, showBismillah: Boolean, bismillah: Str
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                "سُورَةُ ${surah.nameAr}",
+                QuranText.forHafsFont("سُورَةُ ${surah.nameAr}"),
                 style = TextStyle(
                     fontFamily = YaqeenFonts.Quran,
                     fontSize = (fontSize * 0.85f).sp,
@@ -773,7 +781,7 @@ private fun NoorSurahBanner(surah: Surah, showBismillah: Boolean, bismillah: Str
         if (showBismillah) {
             Spacer(Modifier.height(10.dp))
             Text(
-                bismillah,
+                QuranText.forHafsFont(bismillah),
                 style = YaqeenTextStyles.quran(fontSize, 1.7f).copy(color = palette.text, textAlign = TextAlign.Center),
                 modifier = Modifier.fillMaxWidth(),
             )

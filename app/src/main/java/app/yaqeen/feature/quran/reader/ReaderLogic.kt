@@ -25,6 +25,24 @@ object QuranText {
      */
     const val MARKER_PLACEHOLDER = '￼'
 
+    /**
+     * للعرض بخط حفص (مجمع الملك فهد) فقط، دون تعديل النص المخزَّن: نص Tanzil يرمز السكون بـ U+0652
+     * والصفر المستدير فوق الحرف الزائد بـ U+06DF، أما الخط فيرسم السكون (رأس الخاء) من U+06E1
+     * والصفر المستدير من U+0652 كما في مصحف المدينة. التبديل حرف بحرف فلا تتغير المواضع (offsets).
+     */
+    fun forHafsFont(s: String): String {
+        if (s.indexOf('ْ') < 0 && s.indexOf('۟') < 0) return s
+        val out = CharArray(s.length)
+        for (i in s.indices) {
+            out[i] = when (val ch = s[i]) {
+                'ْ' -> 'ۡ'
+                '۟' -> 'ْ'
+                else -> ch
+            }
+        }
+        return String(out)
+    }
+
     private val NAME_MARKS = Regex("[\\u0610-\\u061A\\u064B-\\u065F\\u0670\\u06D6-\\u06ED\\u0640]")
 
     /** اسم السورة بلا تشكيل ولا تطويل للمراجع النصية (البقرة، آل عمران). لا يُستعمل مع نص الآيات. */

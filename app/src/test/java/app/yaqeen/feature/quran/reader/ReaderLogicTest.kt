@@ -25,6 +25,24 @@ class ReaderLogicTest {
 
     // ---------------- علامة نهاية الآية والمراجع
 
+    @Test fun hafsFontMappingSwapsSukunAndRoundedZeroOnly() {
+        // كَفَرُوا۟ (صفر مستدير U+06DF) و عَلَيْهِمْ (سكون U+0652)
+        val src = "كَفَرُوا۟ عَلَيْهِمْ"
+        val out = QuranText.forHafsFont(src)
+        assertEquals(src.length, out.length) // المواضع لا تتغير
+        assertEquals("كَفَرُواْ عَلَيۡهِمۡ", out)
+        assertFalse(out.contains('۟'))
+        // نص بلا سكون ولا صفر يعود كما هو (نفس الكائن)
+        val plain = "بِسْمِ".replace("ْ", "")
+        assertTrue(QuranText.forHafsFont(plain) === plain)
+        // كل آيات المصحف: الطول ثابت ولا يبقى U+06DF
+        for (a in quran.ayahs) {
+            val t = QuranText.forHafsFont(a.text)
+            assertEquals(a.text.length, t.length)
+            assertFalse(t.contains('۟'))
+        }
+    }
+
     @Test fun endMarkerUsesArabicIndicDigits() {
         assertEquals("۝١", QuranText.endMarker(1))
         assertEquals("۝٢٥٥", QuranText.endMarker(255))

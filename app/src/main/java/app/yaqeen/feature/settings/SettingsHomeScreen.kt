@@ -230,7 +230,7 @@ private fun QuranGroup(c: AppContainer) {
     SettingsGroup("إعدادات المصحف") {
         if (preview != null) {
             Text(
-                preview!!,
+                app.yaqeen.feature.quran.reader.QuranText.forHafsFont(preview!!),
                 style = YaqeenTextStyles.quran(size, spacing),
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,

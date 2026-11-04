@@ -108,8 +108,14 @@ object YaqeenFonts {
         Font(R.font.amiri_bold, FontWeight.Bold),
     )
 
-    /** للنص القرآني فقط: خط أميري القرآني المصمم لرسم المصحف. */
-    val Quran = FontFamily(Font(R.font.amiri_quran, FontWeight.Normal))
+    /**
+     * للنص القرآني فقط: خط حفص العثماني من مجمع الملك فهد لطباعة المصحف الشريف (خط مصحف المدينة)،
+     * مضمَّن دون أي تعديل وفق ترخيصه (docs/licenses/KFGQPC-HAFS.txt).
+     */
+    val Quran = FontFamily(Font(R.font.kfgqpc_hafs, FontWeight.Normal))
+
+    /** خط أميري القرآني: لآيات الأذكار (نصها من مصدر آخر بترميز لا يناسب خط حفص بالضرورة). */
+    val QuranAmiri = FontFamily(Font(R.font.amiri_quran, FontWeight.Normal))
 }
 
 private fun uiStyle(size: Int, line: Int, weight: FontWeight = FontWeight.Normal) = TextStyle(
@@ -186,6 +192,8 @@ object YaqeenSchemes {
 
 /** أنماط نص القرآن والأذكار (حجم الخط يأتي من إعدادات المستخدم). */
 object YaqeenTextStyles {
+    fun quranAmiri(sizeSp: Float, lineSpacing: Float = 1.9f) = quran(sizeSp, lineSpacing).copy(fontFamily = YaqeenFonts.QuranAmiri)
+
     fun quran(sizeSp: Float, lineSpacing: Float = 1.9f) = TextStyle(
         fontFamily = YaqeenFonts.Quran, fontSize = sizeSp.sp, lineHeight = (sizeSp * lineSpacing).sp,
         textAlign = TextAlign.Justify, textDirection = TextDirection.Rtl,
