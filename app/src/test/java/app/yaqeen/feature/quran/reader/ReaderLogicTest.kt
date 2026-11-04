@@ -135,7 +135,9 @@ class ReaderLogicTest {
         spans.forEachIndexed { i, s ->
             assertEquals(ayahs[i].id, s.ayahId)
             assertEquals(ayahs[i].text, text.substring(s.start, s.markerStart - 1))
-            assertEquals(QuranText.endMarker(ayahs[i].number), text.substring(s.markerStart, s.end))
+            // الشارة رمز واحد تُرسم بالكود، والرقم محفوظ في الـ span
+            assertEquals(QuranText.MARKER_PLACEHOLDER.toString(), text.substring(s.markerStart, s.end))
+            assertEquals(ayahs[i].number, s.number)
             if (i > 0) assertEquals(spans[i - 1].end + 1, s.start)
         }
         assertEquals(spans.last().end, text.length)
@@ -194,49 +196,63 @@ class ReaderLogicTest {
         assertEquals("أسرع", AutoScroll.levelName(10))
     }
 
-    @Test fun autoScrollNeverWrapsAtMushafEnd() {
-        assertEquals(2, AutoScroll.nextPage(1, 604))
-        assertEquals(604, AutoScroll.nextPage(603, 604))
-        assertNull(AutoScroll.nextPage(604, 604))
-        assertNull(AutoScroll.nextPage(605, 604))
-    }
+    // ---------------- ملاءمة الصفحة للشاشة
 
-    @Test fun autoScrollMovesThenHoldsThenAdvances() {
-        // تمرير: لم نبلغ نهاية الصفحة
-        var t = AutoScroll.tick(offset = 0f, maxOffset = 100f, holdLeft = 50f, dtSeconds = 0.1f, pxPerSecond = 200f, isLastPage = false)
-        assertEquals(20f, t.scrollBy, 0.001f)
-        assertEquals(AutoScroll.Outcome.Continue, t.outcome)
-        // لا يتجاوز نهاية الصفحة
-        t = AutoScroll.tick(95f, 100f, 50f, 0.1f, 400f, false)
-        assertEquals(5f, t.scrollBy, 0.001f)
-        // إمساك عند النهاية
-        t = AutoScroll.tick(100f, 100f, 50f, 0.1f, 200f, false)
-        assertEquals(0f, t.scrollBy, 0f)
-        assertEquals(30f, t.holdLeft, 0.001f)
-        assertEquals(AutoScroll.Outcome.Continue, t.outcome)
-        // انتهى الإمساك: الصفحة التالية
-        t = AutoScroll.tick(100f, 100f, 10f, 0.1f, 200f, false)
-        assertEquals(AutoScroll.Outcome.NextPage, t.outcome)
-    }
+    /** نموذج محتوى: جزء ثابت F + نص يتناسب مع مربع التكبير. */
+    private fun heightAt(scale: Float, fixed: Float = 200f, text: Float = 800f) = fixed + text * scale * scale
 
-    @Test fun autoScrollStopsAtLastPage() {
-        val t = AutoScroll.tick(100f, 100f, 5f, 0.1f, 200f, isLastPage = true)
-        assertEquals(AutoScroll.Outcome.EndOfMushaf, t.outcome)
-        // صفحة قصيرة لا تحتاج تمريرًا (maxOffset = 0) تنتقل بعد الإمساك
-        var hold = 30f
-        var steps = 0
-        var outcome: AutoScroll.Outcome = AutoScroll.Outcome.Continue
-        while (outcome == AutoScroll.Outcome.Continue && steps < 1000) {
-            val tk = AutoScroll.tick(0f, 0f, hold, 0.016f, 100f, isLastPage = false)
-            hold = tk.holdLeft; outcome = tk.outcome; steps++
+    private fun converge(available: Float, fixed: Float = 200f, text: Float = 800f): Float {
+        var scale = 1f
+        var iteration = 0
+        repeat(20) {
+            val step = FitPage.next(scale, heightAt(scale, fixed, text), available, iteration)
+            scale = step.scale
+            iteration = step.iteration
+            if (step.done) return scale
         }
-        assertEquals(AutoScroll.Outcome.NextPage, outcome)
-        assertTrue(steps in 10..30)
+        error("لم يستقر الحساب")
     }
 
-    @Test fun autoScrollHitchFramesAreCapped() {
-        val t = AutoScroll.tick(0f, 1000f, 0f, dtSeconds = 5f, pxPerSecond = 100f, isLastPage = false)
-        assertEquals(10f, t.scrollBy, 0.001f)
+    @Test fun fitPageFillsShortContentWithoutOverflow() {
+        val avail = 2000f
+        val s = converge(avail)
+        assertTrue("يجب أن يكبّر: $s", s > 1.3f)
+        val h = heightAt(s)
+        assertTrue("لا يتجاوز الشاشة: $h", h <= avail)
+        assertTrue("يملأ معظمها: $h", h >= avail * 0.9f)
+    }
+
+    @Test fun fitPageNeverShrinksBelowUserFontSize() {
+        // المحتوى أطول من الشاشة: يبقى التكبير ١ ويُمرَّر
+        assertEquals(1f, converge(available = 600f), 0f)
+    }
+
+    @Test fun fitPageIsCappedForVeryShortPages() {
+        // صفحة قصيرة جدًا (كالفاتحة): لا يتجاوز الحد الأقصى ولو بقي فراغ
+        val s = converge(available = 5000f, fixed = 100f, text = 200f)
+        assertEquals(FitPage.MAX_SCALE, s, 0.0001f)
+    }
+
+    @Test fun fitPageWaitsForARealMeasurement() {
+        val step = FitPage.next(1f, 0f, 2000f, 0)
+        assertFalse(step.done)
+        assertEquals(1f, step.scale, 0f)
+    }
+
+    @Test fun fitPageStopsWithinIterationBudget() {
+        // مهما كانت القياسات فالحلقة تنتهي (لا تذبذب لا نهائي)
+        var scale = 1f
+        var iteration = 0
+        var finished = false
+        for (i in 0 until 30) {
+            val noisy = heightAt(scale) * (if (i % 2 == 0) 1.08f else 0.93f)
+            val step = FitPage.next(scale, noisy, 2000f, iteration)
+            scale = step.scale
+            iteration = step.iteration
+            if (step.done) { finished = true; break }
+        }
+        assertTrue(finished)
+        assertTrue(scale in 1f..FitPage.MAX_SCALE)
     }
 
     // ---------------- القفز

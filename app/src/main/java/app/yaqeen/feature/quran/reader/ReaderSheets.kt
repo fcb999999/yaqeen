@@ -266,6 +266,12 @@ fun ReaderSettingsContent(c: AppContainer, prefs: ReaderPrefs, bismillah: String
             onCheckedChange = { scope.launch { c.settings.set(Settings.QURAN_KEEP_SCREEN_ON, it) } },
         )
         SwitchRow(
+            title = "ملء الصفحة على الشاشات الكبيرة",
+            subtitle = "يكبّر الخط تلقائيًا في الأجهزة اللوحية حتى لا يبقى فراغ أسفل الآيات",
+            checked = prefs.fitPage,
+            onCheckedChange = { scope.launch { c.settings.set(QuranKeys.FIT_PAGE, it) } },
+        )
+        SwitchRow(
             title = "فتح المصحف بوضع ملء الشاشة",
             subtitle = "تُخفى الأشرطة، ويُظهرها لمس هامش الصفحة أو أيقونة الأعلى",
             checked = prefs.startFullscreen,
@@ -314,6 +320,7 @@ fun ReaderSettingsContent(c: AppContainer, prefs: ReaderPrefs, bismillah: String
                     c.settings.reset(Settings.QURAN_FULLSCREEN)
                     c.settings.reset(Settings.QURAN_SCROLL_SPEED)
                     c.settings.reset(QuranKeys.PAGE_MARGIN)
+                    c.settings.reset(QuranKeys.FIT_PAGE)
                 }
             },
             onDismiss = { confirmReset = false },

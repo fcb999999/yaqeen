@@ -2,6 +2,7 @@ package app.yaqeen.feature.quran.reader
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import app.yaqeen.data.settings.BoolKey
 import app.yaqeen.data.settings.IntKey
 import app.yaqeen.data.settings.SettingsRepository
 import app.yaqeen.data.settings.Settings
@@ -14,6 +15,9 @@ import kotlinx.coroutines.flow.combine
 object QuranKeys {
     /** الهامش الأفقي للصفحة بوحدة dp. */
     val PAGE_MARGIN = IntKey(SettingScope.USER, "quran_page_margin", 16)
+
+    /** تكبير الخط تلقائيًا ليملأ الصفحة الشاشات الكبيرة (اللوحية) بدل ترك فراغ أسفل الآيات. */
+    val FIT_PAGE = BoolKey(SettingScope.USER, "quran_fit_page", true)
 }
 
 /** تفضيلات القراءة كما هي في الإعدادات (بعد التقييد بالحدود المعقولة). */
@@ -28,6 +32,8 @@ data class ReaderPrefs(
     val scrollSpeed: Int,
     val pageMargin: Int,
     val themeMode: String,
+    /** ملاءمة حجم الخط للشاشات الكبيرة (تعمل فقط حين يكون عرض الشاشة ≥ ٦٠٠dp). */
+    val fitPage: Boolean = true,
 ) {
     companion object {
         const val MIN_FONT = 20f
@@ -50,7 +56,7 @@ fun SettingsRepository.observeReaderPrefs(): Flow<ReaderPrefs> {
         observe(Settings.QURAN_FULLSCREEN),
         observe(Settings.QURAN_SCROLL_SPEED),
     ) { k, fs, sp -> Triple(k, fs, sp) }
-    val layout = combine(observe(QuranKeys.PAGE_MARGIN), observe(Settings.THEME_MODE)) { m, t -> m to t }
+    val layout = combine(observe(QuranKeys.PAGE_MARGIN), observe(Settings.THEME_MODE), observe(QuranKeys.FIT_PAGE)) { m, t, f -> Triple(m, t, f) }
     return combine(text, behavior, layout) { t, b, l ->
         ReaderPrefs(
             fontSize = t.first.coerceIn(ReaderPrefs.MIN_FONT, ReaderPrefs.MAX_FONT),
@@ -61,6 +67,7 @@ fun SettingsRepository.observeReaderPrefs(): Flow<ReaderPrefs> {
             scrollSpeed = AutoScroll.clampSpeed(b.third),
             pageMargin = l.first.coerceIn(ReaderPrefs.MIN_MARGIN, ReaderPrefs.MAX_MARGIN),
             themeMode = l.second,
+            fitPage = l.third,
         )
     }
 }

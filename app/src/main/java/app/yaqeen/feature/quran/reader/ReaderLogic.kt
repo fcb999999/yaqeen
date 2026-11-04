@@ -16,8 +16,14 @@ object QuranText {
     /** علامة نهاية الآية U+06DD؛ يرسمها خط الأميري القرآني دائرةً تحيط بالرقم الذي يليها. */
     const val AYAH_END_SIGN = '۝'
 
-    /** علامة نهاية الآية + الرقم بالأرقام الهندية: ۝١٢٣ */
+    /** علامة نهاية الآية + الرقم بالأرقام الهندية: ۝١٢٣ (للنسخ والمشاركة النصية فقط). */
     fun endMarker(number: Int): String = AYAH_END_SIGN + ArabicText.indic(number)
+
+    /**
+     * في الصفحة يُستبدل «۝+الرقم» برمز واحد (حرف استبدال الكائن) تُرسم مكانه شارة الآية بالكود،
+     * فلا يتوقف ظهور الرقم داخل الإطار على تشكيل خط الجهاز (يختلف بين الإصدارات والأجهزة).
+     */
+    const val MARKER_PLACEHOLDER = '￼'
 
     private val NAME_MARKS = Regex("[\\u0610-\\u061A\\u064B-\\u065F\\u0670\\u06D6-\\u06ED\\u0640]")
 
@@ -114,11 +120,14 @@ object PageLayout {
     }
 }
 
-/** موضع آية داخل النص المبني لكتلة آيات: [start, end) ويشمل علامة النهاية؛ markerStart بداية العلامة. */
-data class AyahSpan(val ayahId: Int, val start: Int, val markerStart: Int, val end: Int)
+/**
+ * موضع آية داخل النص المبني لكتلة آيات: [start, end) ويشمل علامة النهاية (رمز واحد)؛
+ * markerStart موضع رمز الشارة؛ number رقم الآية في سورتها.
+ */
+data class AyahSpan(val ayahId: Int, val start: Int, val markerStart: Int, val end: Int, val number: Int = 0)
 
 object RunFormat {
-    /** يبني النص المسطّح لكتلة آيات: «نص ۝رقم» مفصولة بمسافة، ويعيد مواضع كل آية. */
+    /** يبني النص المسطّح لكتلة آيات: «نص ￼» (رمز الشارة) مفصولة بمسافة، ويعيد مواضع كل آية. */
     fun build(ayahs: List<Ayah>): Pair<String, List<AyahSpan>> {
         val sb = StringBuilder()
         val spans = ArrayList<AyahSpan>(ayahs.size)
@@ -127,8 +136,8 @@ object RunFormat {
             val start = sb.length
             sb.append(a.text).append(' ')
             val markerStart = sb.length
-            sb.append(QuranText.endMarker(a.number))
-            spans += AyahSpan(a.id, start, markerStart, sb.length)
+            sb.append(QuranText.MARKER_PLACEHOLDER)
+            spans += AyahSpan(a.id, start, markerStart, sb.length, a.number)
         }
         return sb.toString() to spans
     }
@@ -202,42 +211,36 @@ object AutoScroll {
 
     /** سرعة التمرير بوحدة dp/ث: من ١٥٫٥ (المستوى ١) إلى ٨٣ (المستوى ١٠). */
     fun dpPerSecond(speed: Int): Float = 8f + 7.5f * clampSpeed(speed)
+}
 
-    /** الصفحة التالية أو null عند نهاية المصحف (لا التفاف أبدًا). */
-    fun nextPage(current: Int, pageCount: Int): Int? = if (current < pageCount) current + 1 else null
+// ---------------------------------------------------------------- ملاءمة الصفحة للشاشة
 
-    sealed interface Outcome {
-        data object Continue : Outcome
-        data object NextPage : Outcome
-        data object EndOfMushaf : Outcome
-    }
+/** خطوة من حساب تكبير الخط ليملأ نص الصفحة ارتفاع الشاشة (في الأجهزة اللوحية خصوصًا). */
+data class FitStep(val scale: Float, val iteration: Int, val done: Boolean)
+
+object FitPage {
+    const val MAX_SCALE = 1.6f
+
+    /** نملأ هذه النسبة من الارتفاع فقط حتى لا يظهر تمرير طفيف بسبب فروق التقريب. */
+    const val FILL = 0.96f
+    const val MAX_ITERATIONS = 6
+    private const val TOLERANCE = 0.025f
 
     /**
-     * @param scrollBy مقدار التمرير في هذا الإطار (بكسل، ≥ 0)
-     * @param holdLeft ما تبقّى من "زمن الإمساك" (بالبكسل) عند آخر الصفحة قبل الانتقال
+     * يُستدعى كلما قيس ارتفاع المحتوى الفعلي [measured] عند التكبير الحالي [scale] ضمن ارتفاع متاح [available].
+     * الارتفاع يتناسب تقريبًا مع مربع التكبير (عدد الأسطر × ارتفاع السطر)، فنكرر التقريب حتى يستقر.
+     * لا نصغّر أبدًا عن حجم الخط الذي اختاره المستخدم (scale ≥ 1)، وإن كان المحتوى أطول من الشاشة بقي كما هو ويُمرَّر.
      */
-    data class Tick(val scrollBy: Float, val holdLeft: Float, val outcome: Outcome)
-
-    /**
-     * خطوة واحدة من التمرير التلقائي لصفحة واحدة: يتحرك النص حتى نهايته ثم يمسك المقدار holdLeft
-     * (يعادل قراءة آخر ما ظهر) ثم ينتقل إلى الصفحة التالية، وعند الصفحة الأخيرة يتوقف بدل الالتفاف.
-     */
-    fun tick(
-        offset: Float,
-        maxOffset: Float,
-        holdLeft: Float,
-        dtSeconds: Float,
-        pxPerSecond: Float,
-        isLastPage: Boolean,
-    ): Tick {
-        val step = pxPerSecond * dtSeconds.coerceIn(0f, 0.1f)
-        val remaining = (maxOffset - offset).coerceAtLeast(0f)
-        if (remaining > 0.5f) {
-            return Tick(minOf(step, remaining), holdLeft, Outcome.Continue)
+    fun next(scale: Float, measured: Float, available: Float, iteration: Int, maxScale: Float = MAX_SCALE): FitStep {
+        if (measured <= 0f || available <= 0f) return FitStep(scale, iteration, done = false)
+        val target = available * FILL
+        val error = (target - measured) / target
+        if (kotlin.math.abs(error) <= TOLERANCE) return FitStep(scale, iteration, done = true)
+        val wanted = (scale * kotlin.math.sqrt(target / measured)).coerceIn(1f, maxScale)
+        if (kotlin.math.abs(wanted - scale) < 0.005f || iteration >= MAX_ITERATIONS) {
+            return FitStep(if (measured > available) wanted else scale, iteration, done = true)
         }
-        val left = holdLeft - step
-        if (left > 0f) return Tick(0f, left, Outcome.Continue)
-        return Tick(0f, 0f, if (isLastPage) Outcome.EndOfMushaf else Outcome.NextPage)
+        return FitStep(wanted, iteration + 1, done = false)
     }
 }
 

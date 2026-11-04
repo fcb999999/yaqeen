@@ -44,6 +44,8 @@ object Settings {
     // ---- المظهر ----
     /** system | light | dark */
     val THEME_MODE = StringKey(U, "theme_mode", "system")
+    /** classic | hayat (القيم المجهولة تُعامل كـ classic عبر ThemeStyle.normalize) */
+    val THEME_STYLE = StringKey(U, "theme_style", "classic")
     val UI_FONT_SCALE = FloatKey(U, "ui_font_scale", 1.0f)
 
     // ---- المصحف ----

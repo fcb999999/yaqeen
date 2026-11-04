@@ -46,7 +46,13 @@ import app.yaqeen.feature.quran.reader.PlanMath
 import app.yaqeen.feature.quran.reader.QuranLoad
 import app.yaqeen.feature.quran.reader.QuranText
 import app.yaqeen.feature.quran.reader.rememberQuranLoad
+import app.yaqeen.ui.components.HeroButton
+import app.yaqeen.ui.components.HeroCard
+import app.yaqeen.ui.components.LocalHero
 import app.yaqeen.ui.components.ProgressBar
+import app.yaqeen.ui.components.YaqeenTile
+import app.yaqeen.ui.theme.Area
+import app.yaqeen.ui.theme.Hue
 import app.yaqeen.ui.components.SectionTitle
 import app.yaqeen.ui.components.YaqeenCard
 import app.yaqeen.ui.components.YaqeenTopBar
@@ -74,12 +80,12 @@ fun QuranHomeScreen(nav: NavHostController, c: AppContainer) {
 
             SectionTitle("وصول سريع")
             val actions = listOf(
-                Action("الفهرس", Icons.Filled.FormatListNumbered, QuranRoutes.INDEX),
-                Action("البحث", Icons.Filled.Search, QuranRoutes.SEARCH),
-                Action("العلامات", Icons.Filled.Bookmarks, QuranRoutes.BOOKMARKS),
-                Action("الأوراد", Icons.Filled.Flag, Routes.quranPlans()),
-                Action("التنزيلات", Icons.Filled.Download, QuranRoutes.DOWNLOADS),
-                Action("إعدادات القراءة", Icons.Filled.Tune, QuranRoutes.SETTINGS),
+                Action("الفهرس", Icons.Filled.FormatListNumbered, QuranRoutes.INDEX, Hue.VIOLET),
+                Action("البحث", Icons.Filled.Search, QuranRoutes.SEARCH, Hue.TEAL),
+                Action("العلامات", Icons.Filled.Bookmarks, QuranRoutes.BOOKMARKS, Hue.CORAL),
+                Action("الأوراد", Icons.Filled.Flag, Routes.quranPlans(), Hue.AMBER),
+                Action("التنزيلات", Icons.Filled.Download, QuranRoutes.DOWNLOADS, Hue.GREEN),
+                Action("إعدادات القراءة", Icons.Filled.Tune, QuranRoutes.SETTINGS, Hue.BLUE),
             )
             actions.chunked(2).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -116,77 +122,72 @@ fun QuranHomeScreen(nav: NavHostController, c: AppContainer) {
 
 private data class Opt(val value: ReadingProgressEntity?)
 
-private data class Action(val label: String, val icon: ImageVector, val route: String)
+private data class Action(val label: String, val icon: ImageVector, val route: String, val hue: Hue)
 
 @Composable
 private fun ActionTile(action: Action, modifier: Modifier, onClick: () -> Unit) {
-    YaqeenCard(modifier, onClick = onClick) {
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(action.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-            Spacer(Modifier.height(6.dp))
-            Text(action.label, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
-        }
-    }
+    YaqeenTile(action.label, action.icon, onClick, modifier, hue = action.hue)
 }
 
 @Composable
 private fun ContinueCard(nav: NavHostController, c: AppContainer, load: QuranLoad, loaded: Boolean, latest: ReadingProgressEntity?, onRetry: () -> Unit) {
     val quran: QuranData? = (load as? QuranLoad.Ready)?.quran
     val valid = latest != null && quran != null && latest.surah in 1..quran.surahs.size
-    YaqeenCard(
+    HeroCard(
+        Area.QURAN,
         Modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
         onClick = if (valid) ({ nav.navigate(Routes.quranReader()) }) else null,
     ) {
+        val on = LocalHero.current.content
         when {
             load is QuranLoad.Failed -> {
-                Text("تعذّر تحميل المصحف", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text("تعذّر تحميل المصحف", style = MaterialTheme.typography.titleMedium, color = on)
                 Spacer(Modifier.height(8.dp))
-                Button(onClick = onRetry) { Text("إعادة المحاولة") }
+                HeroButton("إعادة المحاولة", onRetry)
             }
             quran == null || !loaded -> {
-                Text("جارٍ التحميل…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text("جارٍ التحميل…", style = MaterialTheme.typography.bodyMedium, color = on)
             }
             valid -> {
                 val p = latest!!
                 val surah = quran.surah(p.surah)
                 val frac = (p.page.toFloat() / quran.pageCount).coerceIn(0f, 1f)
-                Text("تابع القراءة", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text("تابع القراءة", style = MaterialTheme.typography.labelLarge, color = on)
                 Text(
                     "سورة ${QuranText.plainSurahName(surah.nameAr)} – الآية ${ArabicText.indic(p.ayah)}",
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = on,
                 )
                 Text(
                     "صفحة ${ArabicText.indic(p.page)} – الجزء ${ArabicText.indic(p.juz)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = on,
                 )
                 if (p.id != c.device.deviceId) {
                     Text(
                         "آخر قراءة على جهاز ${p.deviceName.trim().ifEmpty { "آخر" }}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = on,
                     )
                 }
                 Spacer(Modifier.height(10.dp))
-                ProgressBar(frac)
+                ProgressBar(frac, onHero = true)
                 Text(
                     "${ArabicText.indic((frac * 100).toInt())}٪ من المصحف",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = on,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
             else -> {
-                Text("ابدأ رحلتك مع القرآن", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text("ابدأ رحلتك مع القرآن", style = MaterialTheme.typography.titleMedium, color = on)
                 Text(
                     "لم تبدأ القراءة بعد. سيُحفظ موضعك تلقائيًا أثناء القراءة.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = on,
                 )
                 Spacer(Modifier.height(8.dp))
-                Button(onClick = { nav.navigate(Routes.quranReader(surah = 1)) }) { Text("ابدأ من الفاتحة") }
+                HeroButton("ابدأ من الفاتحة", { nav.navigate(Routes.quranReader(surah = 1)) })
             }
         }
     }

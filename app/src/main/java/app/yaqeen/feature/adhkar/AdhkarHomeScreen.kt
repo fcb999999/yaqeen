@@ -44,12 +44,28 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.yaqeen.core.ArabicText
 import app.yaqeen.domain.model.AdhkarCategoryId
 import app.yaqeen.ui.components.EmptyState
+import app.yaqeen.ui.components.HeroCard
+import app.yaqeen.ui.components.IconChip
+import app.yaqeen.ui.components.LocalHero
+import app.yaqeen.ui.components.YaqeenTile
+import app.yaqeen.ui.theme.Area
+import app.yaqeen.ui.theme.Hue
 import app.yaqeen.ui.components.LoadingBox
 import app.yaqeen.ui.components.ProgressBar
 import app.yaqeen.ui.components.SectionTitle
 import app.yaqeen.ui.components.YaqeenCard
 import app.yaqeen.ui.components.YaqeenTopBar
 import app.yaqeen.ui.theme.YaqeenTheme
+
+/** لون كل قسم في نمط «حياة» (لا يؤثر في classic). */
+internal fun categoryHue(id: String): Hue = when (id) {
+    AdhkarCategoryId.MORNING -> Hue.AMBER
+    AdhkarCategoryId.EVENING -> Hue.CORAL
+    AdhkarCategoryId.SLEEP -> Hue.VIOLET
+    AdhkarCategoryId.WAKING -> Hue.TEAL
+    AdhkarCategoryId.AFTER_PRAYER -> Hue.GREEN
+    else -> Hue.PINK
+}
 
 internal fun categoryIcon(id: String): ImageVector = when (id) {
     AdhkarCategoryId.MORNING -> Icons.Filled.WbSunny
@@ -92,27 +108,28 @@ fun AdhkarHomeScreen(
 
 @Composable
 private fun ContinueCard(c: ContinueUi, onOpen: (String, Int) -> Unit) {
-    YaqeenCard(
+    HeroCard(
+        Area.ADHKAR,
         modifier = Modifier.fillMaxWidth(),
         onClick = { onOpen(c.categoryId, if (c.isResume) c.itemIndex else -1) },
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
     ) {
+        val on = LocalHero.current.content
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
                     if (c.isResume) "تابع من حيث توقفت" else "ابدأ ${c.categoryTitle}",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = on,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     if (c.isResume) "${c.categoryTitle} – الذكر ${ArabicText.indic(c.itemIndex + 1)} من ${ArabicText.indic(c.total)}"
                     else "اقتراح بحسب وقت اليوم",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = on,
                 )
             }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = on)
         }
     }
 }
@@ -120,37 +137,37 @@ private fun ContinueCard(c: ContinueUi, onOpen: (String, Int) -> Unit) {
 @Composable
 private fun QuickRow(favorites: Int, bookmarks: Int, onFavorites: () -> Unit, onBookmarks: () -> Unit, onSearch: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        QuickTile("المفضلة", Icons.Filled.Star, if (favorites > 0) ArabicText.indic(favorites) else null, onFavorites, Modifier.weight(1f))
-        QuickTile("العلامات", Icons.Filled.Bookmark, if (bookmarks > 0) ArabicText.indic(bookmarks) else null, onBookmarks, Modifier.weight(1f))
-        QuickTile("بحث", Icons.Filled.Search, null, onSearch, Modifier.weight(1f))
+        QuickTile("المفضلة", Icons.Filled.Star, if (favorites > 0) ArabicText.indic(favorites) else null, Hue.AMBER, onFavorites, Modifier.weight(1f))
+        QuickTile("العلامات", Icons.Filled.Bookmark, if (bookmarks > 0) ArabicText.indic(bookmarks) else null, Hue.VIOLET, onBookmarks, Modifier.weight(1f))
+        QuickTile("بحث", Icons.Filled.Search, null, Hue.TEAL, onSearch, Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun QuickTile(label: String, icon: ImageVector, badge: String?, onClick: () -> Unit, modifier: Modifier) {
-    YaqeenCard(modifier = modifier, onClick = onClick, contentPadding = PaddingValues(vertical = 14.dp, horizontal = 8.dp)) {
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(6.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
-            Text(
-                badge ?: " ",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+private fun QuickTile(label: String, icon: ImageVector, badge: String?, hue: Hue, onClick: () -> Unit, modifier: Modifier) {
+    YaqeenTile(
+        label, icon, onClick, modifier,
+        hue = hue,
+        caption = badge ?: " ",
+        iconSize = 24.dp,
+        contentPadding = PaddingValues(vertical = 14.dp, horizontal = 8.dp),
+        labelStyle = MaterialTheme.typography.labelLarge,
+    )
 }
 
 @Composable
 private fun CategoryCard(cat: CategoryCardUi, onClick: () -> Unit) {
     YaqeenCard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(48.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(categoryIcon(cat.id), null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            if (YaqeenTheme.isHayat) {
+                IconChip(categoryIcon(cat.id), categoryHue(cat.id), size = 52.dp)
+            } else {
+                Box(
+                    Modifier.size(48.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(categoryIcon(cat.id), null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {

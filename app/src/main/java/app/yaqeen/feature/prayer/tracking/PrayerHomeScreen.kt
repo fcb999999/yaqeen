@@ -44,6 +44,11 @@ import app.yaqeen.core.ArabicText
 import app.yaqeen.core.HijriCalendar
 import app.yaqeen.domain.model.Prayer
 import app.yaqeen.ui.components.EmptyState
+import app.yaqeen.ui.components.HeroCard
+import app.yaqeen.ui.components.LocalHero
+import app.yaqeen.ui.components.YaqeenTile
+import app.yaqeen.ui.theme.Area
+import app.yaqeen.ui.theme.Hue
 import app.yaqeen.ui.components.LoadingBox
 import app.yaqeen.ui.components.Pill
 import app.yaqeen.ui.components.ProgressBar
@@ -135,9 +140,9 @@ private fun PrayerHomeContent(nav: NavHostController, vm: PrayerHomeViewModel, u
 
         item(key = "links") {
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                LinkCard("المواقيت", Icons.Filled.AccessTime, Modifier.weight(1f)) { nav.navigate(Routes.PRAYER_TIMES) }
-                LinkCard("القبلة", Icons.Filled.Explore, Modifier.weight(1f)) { nav.navigate(Routes.PRAYER_QIBLA) }
-                LinkCard("الإحصاءات", Icons.Filled.BarChart, Modifier.weight(1f)) { nav.navigate(Routes.PRAYER_STATS) }
+                LinkCard("المواقيت", Icons.Filled.AccessTime, Hue.TEAL, Modifier.weight(1f)) { nav.navigate(Routes.PRAYER_TIMES) }
+                LinkCard("القبلة", Icons.Filled.Explore, Hue.BLUE, Modifier.weight(1f)) { nav.navigate(Routes.PRAYER_QIBLA) }
+                LinkCard("الإحصاءات", Icons.Filled.BarChart, Hue.PINK, Modifier.weight(1f)) { nav.navigate(Routes.PRAYER_STATS) }
             }
         }
         item(key = "bottom") { Spacer(Modifier.height(16.dp)) }
@@ -204,26 +209,27 @@ private fun NextPrayerCard(ui: PrayerHomeUi, onChooseLocation: () -> Unit) {
     val next = timeline.next
     val nextTime = timeline.nextTime
     val minutes = timeline.minutesToNext
-    YaqeenCard(Modifier.fillMaxWidth(), containerColor = MaterialTheme.colorScheme.primaryContainer) {
+    HeroCard(Area.PRAYER, Modifier.fillMaxWidth()) {
+        val on = LocalHero.current.content
         if (next == null || nextTime == null || minutes == null) {
-            Text("انتهت صلوات اليوم", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text("انتهت صلوات اليوم", style = MaterialTheme.typography.titleMedium, color = on)
         } else {
             val tomorrow = nextTime.toLocalDate() != ui.date
             Text(
                 if (tomorrow) "الصلاة القادمة غدًا" else "الصلاة القادمة",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = on,
             )
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(next.ar, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(next.ar, style = MaterialTheme.typography.headlineSmall, color = on)
                 Spacer(Modifier.width(12.dp))
-                Text(PrayerFormat.clock12(nextTime), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(PrayerFormat.clock12(nextTime), style = MaterialTheme.typography.titleMedium, color = on)
             }
             Spacer(Modifier.height(4.dp))
             Text(
                 "يتبقى ${PrayerFormat.remaining(minutes)}",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = on,
             )
         }
     }
@@ -290,12 +296,12 @@ private fun RawatibCard(ui: PrayerHomeUi, vm: PrayerHomeViewModel, onManage: () 
 }
 
 @Composable
-private fun LinkCard(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier, onClick: () -> Unit) {
-    YaqeenCard(modifier, onClick = onClick, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 14.dp, horizontal = 8.dp)) {
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(6.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge)
-        }
-    }
+private fun LinkCard(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, hue: Hue, modifier: Modifier, onClick: () -> Unit) {
+    YaqeenTile(
+        label, icon, onClick, modifier,
+        hue = hue,
+        iconSize = 24.dp,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 14.dp, horizontal = 8.dp),
+        labelStyle = MaterialTheme.typography.labelLarge,
+    )
 }

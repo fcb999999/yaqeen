@@ -13,12 +13,15 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -52,6 +55,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,6 +74,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -86,6 +91,7 @@ import androidx.navigation.NavHostController
 import app.yaqeen.AppContainer
 import app.yaqeen.core.ArabicText
 import app.yaqeen.data.quran.Ayah
+import app.yaqeen.data.quran.QuranData
 import app.yaqeen.data.settings.Settings
 import app.yaqeen.feature.quran.QuranRoutes
 import app.yaqeen.feature.quran.bookmarks.BookmarkEditorSheet
@@ -95,7 +101,12 @@ import app.yaqeen.ui.components.EmptyState
 import app.yaqeen.ui.components.LoadingBox
 import app.yaqeen.ui.containerViewModel
 import app.yaqeen.ui.navigation.Routes
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -144,9 +155,21 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
 
     // الصفحة الحالية تُحفظ عبر إعادة الإنشاء (تدوير/موت العملية)
     var savedPage by rememberSaveable { mutableIntStateOf(ready.startPage) }
-    val pagerState = androidx.compose.foundation.pager.rememberPagerState(initialPage = (savedPage - 1).coerceIn(0, quran.pageCount - 1)) { quran.pageCount }
+    var autoMode by remember { mutableStateOf(AutoMode.Off) }
+    // التمرير التلقائي = تدفّق متواصل (قائمة رأسية من الصفحات) ينساب فيه النص إلى الأعلى دون توقف عند حدود الصفحات؛
+    // يُعاد المُمرِّر الأفقي (بحالة جديدة عند الصفحة الأخيرة المقروءة) حين ينتهي التمرير التلقائي.
+    var pagerEpoch by remember { mutableIntStateOf(0) }
+    val pagerState = key(pagerEpoch) {
+        androidx.compose.foundation.pager.rememberPagerState(initialPage = (savedPage - 1).coerceIn(0, quran.pageCount - 1)) { quran.pageCount }
+    }
     LaunchedEffect(pagerState) { snapshotFlow { pagerState.currentPage }.collect { savedPage = it + 1 } }
-    val currentPage = pagerState.currentPage + 1
+    val continuous = autoMode != AutoMode.Off
+    var contStart by remember { mutableIntStateOf(1) }
+    var contEpoch by remember { mutableIntStateOf(0) }
+    var contOffset by remember { mutableIntStateOf(0) }
+    var contPage by remember { mutableIntStateOf(savedPage) }
+    val currentPage = if (continuous) contPage else pagerState.currentPage + 1
+    val fitEnabled = prefs.fitPage && LocalConfiguration.current.screenWidthDp >= 600
 
     var immersive by rememberSaveable { mutableStateOf(prefs.startFullscreen) }
     var sheet by remember { mutableStateOf(ReaderSheet.None) }
@@ -154,11 +177,9 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
     var focusId by remember { mutableStateOf(ready.focusAyahId) }
     var nonce by remember { mutableIntStateOf(0) }
     var scrollReq by remember { mutableStateOf(ready.focusAyahId?.let { ScrollRequest(it, 0) }) }
-    var autoMode by remember { mutableStateOf(AutoMode.Off) }
     var menuOpen by remember { mutableStateOf(false) }
     val audio by c.quranAudio.state.collectAsState()
     val scrollStates = remember { HashMap<Int, ScrollState>() }
-    val speedNow by rememberUpdatedState(prefs.scrollSpeed)
 
     // ---- تنظيف حالات التمرير البعيدة (تبدأ الصفحة من أعلاها عند العودة إليها)
     LaunchedEffect(currentPage) { scrollStates.keys.removeAll { abs(it - currentPage) > 1 } }
@@ -212,6 +233,14 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
 
     // ---- التنقل داخل المصحف
     fun goToPage(page: Int, focusAyah: Int?) {
+        if (continuous) {
+            // في التدفق المتواصل: نعيد بناء القائمة من الصفحة المطلوبة
+            contStart = page.coerceIn(1, quran.pageCount)
+            contOffset = 0
+            contPage = contStart
+            contEpoch++
+            return
+        }
         scope.launch {
             val idx = page.coerceIn(1, quran.pageCount) - 1
             if (abs(idx - pagerState.currentPage) <= 2) pagerState.animateScrollToPage(idx) else pagerState.scrollToPage(idx)
@@ -226,6 +255,7 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
     // ---- متابعة الآية الجارية في التلاوة (فقط إن كان المستخدم يتابعها)
     var lastPlayingPage by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(audio.currentAyahId) {
+        if (autoMode != AutoMode.Off) return@LaunchedEffect
         val id = audio.currentAyahId ?: return@LaunchedEffect
         if (id !in 1..quran.totalAyahs) return@LaunchedEffect
         val target = quran.ayah(id).page
@@ -241,37 +271,20 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
         lastPlayingPage = target
     }
 
-    // ---- التمرير التلقائي
-    LaunchedEffect(autoMode == AutoMode.Running) {
-        if (autoMode != AutoMode.Running) return@LaunchedEffect
-        var last = 0L
-        var tracked = -1
-        var hold = 0f
-        while (isActive) {
-            val now = withFrameNanos { it }
-            val dt = if (last == 0L) 0f else (now - last) / 1_000_000_000f
-            last = now
-            if (pagerState.isScrollInProgress) continue
-            val page = pagerState.currentPage + 1
-            val ss = scrollStates[page] ?: continue
-            if (ss.maxValue == Int.MAX_VALUE) continue // لم يُقَس المحتوى بعد
-            if (page != tracked) {
-                tracked = page
-                hold = pagerState.layoutInfo.viewportSize.height * 0.6f
-            }
-            val pxPerSec = AutoScroll.dpPerSecond(speedNow) * density.density
-            val t = AutoScroll.tick(ss.value.toFloat(), ss.maxValue.toFloat(), hold, dt, pxPerSec, page >= quran.pageCount)
-            hold = t.holdLeft
-            if (t.scrollBy > 0f) ss.scrollBy(t.scrollBy)
-            when (t.outcome) {
-                AutoScroll.Outcome.Continue -> Unit
-                AutoScroll.Outcome.NextPage -> AutoScroll.nextPage(page, quran.pageCount)?.let { pagerState.animateScrollToPage(it - 1) }
-                AutoScroll.Outcome.EndOfMushaf -> {
-                    autoMode = AutoMode.Off
-                    scope.launch { snackbar.showSnackbar("وصلت إلى نهاية المصحف") }
-                }
-            }
-        }
+    // ---- التمرير التلقائي (تدفّق متواصل)
+    fun startAuto() {
+        contStart = currentPage
+        contOffset = scrollStates[currentPage]?.value ?: 0
+        contPage = currentPage
+        contEpoch++
+        autoMode = AutoMode.Running
+    }
+
+    fun stopAuto(message: String? = null) {
+        savedPage = contPage
+        autoMode = AutoMode.Off
+        pagerEpoch++
+        if (message != null) scope.launch { snackbar.showSnackbar(message) }
     }
 
     // ---- أدوات مساعدة
@@ -331,28 +344,50 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
                     .fillMaxWidth()
                     .onUserDrag { dragCallback() },
             ) {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
-                    beyondViewportPageCount = 1,
-                    key = { it },
-                ) { index ->
-                    val page = index + 1
-                    val ss = remember(page) { scrollStates.getOrPut(page) { ScrollState(0) } }
-                    ReaderPage(
-                        page = page,
-                        quran = quran,
-                        prefs = prefs,
-                        palette = palette,
-                        scroll = ss,
-                        selectedAyahId = selectedAyahId,
-                        focusAyahId = focusId,
-                        playingAyahId = audio.currentAyahId,
-                        scrollRequest = scrollReq?.takeIf { quran.ayah(it.ayahId).page == page },
-                        onAyahTap = { onAyahTap(it) },
-                        onBackgroundTap = { immersive = !immersive },
+                if (continuous) {
+                    key(contStart, contEpoch) {
+                        ContinuousReader(
+                            quran = quran,
+                            prefs = prefs,
+                            palette = palette,
+                            startPage = contStart,
+                            startOffset = contOffset,
+                            running = autoMode == AutoMode.Running,
+                            speed = prefs.scrollSpeed,
+                            selectedAyahId = selectedAyahId,
+                            focusAyahId = focusId,
+                            playingAyahId = audio.currentAyahId,
+                            onAyahTap = { onAyahTap(it) },
+                            onBackgroundTap = { immersive = !immersive },
+                            onTopPage = { contPage = it },
+                            onEnd = { stopAuto("وصلت إلى نهاية المصحف") },
+                        )
+                    }
+                } else {
+                    HorizontalPager(
+                        state = pagerState,
                         modifier = Modifier.fillMaxSize(),
-                    )
+                        beyondViewportPageCount = 1,
+                        key = { it },
+                    ) { index ->
+                        val page = index + 1
+                        val ss = remember(page) { scrollStates.getOrPut(page) { ScrollState(0) } }
+                        ReaderPage(
+                            page = page,
+                            quran = quran,
+                            prefs = prefs,
+                            palette = palette,
+                            scroll = ss,
+                            selectedAyahId = selectedAyahId,
+                            focusAyahId = focusId,
+                            playingAyahId = audio.currentAyahId,
+                            scrollRequest = scrollReq?.takeIf { quran.ayah(it.ayahId).page == page },
+                            onAyahTap = { onAyahTap(it) },
+                            onBackgroundTap = { immersive = !immersive },
+                            modifier = Modifier.fillMaxSize(),
+                            fitEnabled = fitEnabled,
+                        )
+                    }
                 }
                 if (immersive) {
                     IconButton(
@@ -377,9 +412,9 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
                     page = currentPage,
                     autoMode = autoMode,
                     speed = prefs.scrollSpeed,
-                    onStartAuto = { autoMode = AutoMode.Running },
+                    onStartAuto = { startAuto() },
                     onToggleAuto = { autoMode = if (autoMode == AutoMode.Running) AutoMode.Paused else AutoMode.Running },
-                    onStopAuto = { autoMode = AutoMode.Off },
+                    onStopAuto = { stopAuto() },
                     onFaster = { changeSpeed(+1) },
                     onSlower = { changeSpeed(-1) },
                     onJump = { openSheet(ReaderSheet.Jump) },
@@ -573,6 +608,96 @@ private fun BarAction(icon: ImageVector, label: String, onClick: () -> Unit) {
     ) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+    }
+}
+
+// ---------------------------------------------------------------- التدفق المتواصل (التمرير التلقائي)
+
+/**
+ * قائمة رأسية من الصفحات تبدأ من [startPage]، تتحرك إلى الأعلى بسرعة ثابتة وتستمر عبر حدود الصفحات
+ * حتى نهاية المصحف. عند الإيقاف المؤقت يبقى المكان ويمكن التمرير اليدوي. الحركة تتراكم كسورها
+ * (نحرّك بأعداد صحيحة من البكسل) حتى لا تُفقد السرعات البطيئة.
+ */
+@Composable
+private fun ContinuousReader(
+    quran: QuranData,
+    prefs: ReaderPrefs,
+    palette: ReaderPalette,
+    startPage: Int,
+    startOffset: Int,
+    running: Boolean,
+    speed: Int,
+    selectedAyahId: Int?,
+    focusAyahId: Int?,
+    playingAyahId: Int?,
+    onAyahTap: (Ayah) -> Unit,
+    onBackgroundTap: () -> Unit,
+    onTopPage: (Int) -> Unit,
+    onEnd: () -> Unit,
+) {
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = 0, initialFirstVisibleItemScrollOffset = startOffset)
+    val density = LocalDensity.current
+    val count = quran.pageCount - startPage + 1
+    val speedNow by rememberUpdatedState(speed)
+    val endNow by rememberUpdatedState(onEnd)
+    val topNow by rememberUpdatedState(onTopPage)
+
+    // الصفحة التي تقع في منتصف الشاشة هي "الصفحة الحالية" (للحفظ والعنوان)
+    LaunchedEffect(state, startPage) {
+        snapshotFlow {
+            val info = state.layoutInfo
+            val center = (info.viewportStartOffset + info.viewportEndOffset) / 2
+            info.visibleItemsInfo.firstOrNull { it.offset <= center && it.offset + it.size > center }?.index
+        }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect { topNow(startPage + it) }
+    }
+
+    LaunchedEffect(running) {
+        if (!running) return@LaunchedEffect
+        var last = 0L
+        var acc = 0f
+        while (isActive) {
+            val now = withFrameNanos { it }
+            val dt = if (last == 0L) 0f else ((now - last) / 1_000_000_000f).coerceIn(0f, 0.1f)
+            last = now
+            acc += AutoScroll.dpPerSecond(speedNow) * density.density * dt
+            val whole = acc.toInt()
+            if (whole >= 1) {
+                acc -= whole
+                try {
+                    state.scrollBy(whole.toFloat())
+                } catch (e: CancellationException) {
+                    // لمسة المستخدم تقاطع الحركة؛ إن لم يُلغَ عملنا نفسه نواصل (الإيقاف المؤقت يتولاه السحب)
+                    currentCoroutineContext().ensureActive()
+                }
+                if (!state.canScrollForward) {
+                    endNow()
+                    return@LaunchedEffect
+                }
+            }
+        }
+    }
+
+    LazyColumn(
+        state = state,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 48.dp),
+    ) {
+        items(count, key = { it }) { i ->
+            ContinuousPageItem(
+                page = startPage + i,
+                quran = quran,
+                prefs = prefs,
+                palette = palette,
+                selectedAyahId = selectedAyahId,
+                focusAyahId = focusAyahId,
+                playingAyahId = playingAyahId,
+                onAyahTap = onAyahTap,
+                onBackgroundTap = onBackgroundTap,
+            )
+        }
     }
 }
 

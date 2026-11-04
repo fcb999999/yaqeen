@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -36,7 +37,7 @@ object YaqeenColors {
     val Night = Color(0xFF0E1726)
 }
 
-private val LightColors = lightColorScheme(
+internal val ClassicLightColors: ColorScheme = lightColorScheme(
     primary = YaqeenColors.RoyalBlue,
     onPrimary = Color.White,
     primaryContainer = Color(0xFFDCE6F3),
@@ -65,7 +66,7 @@ private val LightColors = lightColorScheme(
     surfaceContainerHighest = Color(0xFFE6E4DF),
 )
 
-private val DarkColors = darkColorScheme(
+internal val ClassicDarkColors: ColorScheme = darkColorScheme(
     primary = Color(0xFF9DB9E0),
     onPrimary = Color(0xFF0E2A4F),
     primaryContainer = Color(0xFF1B3F6B),
@@ -134,7 +135,7 @@ private val YaqeenTypography = Typography(
     labelSmall = uiStyle(11, 16, FontWeight.Medium),
 )
 
-private val YaqeenShapes = Shapes(
+internal val YaqeenShapes = Shapes(
     extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
     small = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
     medium = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
@@ -150,6 +151,28 @@ val LocalExtraColors = staticCompositionLocalOf { ExtraColors(Color.Unspecified,
 
 object YaqeenTheme {
     val extra: ExtraColors @Composable @ReadOnlyComposable get() = LocalExtraColors.current
+
+    /** ألوان المجالات وشريط التنقل حسب النمط الحالي (classic/hayat). */
+    val extras: YaqeenExtras @Composable @ReadOnlyComposable get() = LocalYaqeenExtras.current
+
+    /** هل النمط الحالي «حياة»؟ */
+    val isHayat: Boolean @Composable @ReadOnlyComposable get() = LocalYaqeenExtras.current.isHayat
+}
+
+/** اختيار المخطط والألوان الإضافية حسب (النمط × الفاتح/الداكن). دوال خالصة قابلة للاختبار. */
+object YaqeenSchemes {
+    fun scheme(style: String?, dark: Boolean): ColorScheme = when {
+        ThemeStyle.isHayat(style) -> if (dark) HayatDarkColors else HayatLightColors
+        else -> if (dark) ClassicDarkColors else ClassicLightColors
+    }
+
+    fun extraColors(style: String?, dark: Boolean): ExtraColors = when {
+        ThemeStyle.isHayat(style) -> if (dark) HayatExtraDark else HayatExtraLight
+        dark -> ExtraColors(Color(0xFFD4B98F), Color(0xFF3A2F1C), Color(0xFF7FC8A0), Color(0xFFE5B567))
+        else -> ExtraColors(Color(0xFF8E6F43), Color(0xFFF1E4CF), Color(0xFF2E7D57), Color(0xFFB7791F))
+    }
+
+    fun shapes(style: String?): Shapes = if (ThemeStyle.isHayat(style)) HayatShapes else YaqeenShapes
 }
 
 /** أنماط نص القرآن والأذكار (حجم الخط يأتي من إعدادات المستخدم). */
@@ -165,25 +188,20 @@ object YaqeenTextStyles {
     )
 }
 
-/** وضع المظهر المحفوظ في الإعدادات: system | light | dark */
+/** وضع المظهر المحفوظ في الإعدادات: system | light | dark، ونمط التطبيق: classic | hayat (المجهول = classic). */
 @Composable
-fun YaqeenTheme(themeMode: String = "system", content: @Composable () -> Unit) {
-    val dark = when (themeMode) {
-        "dark" -> true
-        "light" -> false
-        else -> isSystemInDarkTheme()
-    }
-    val scheme: ColorScheme = if (dark) DarkColors else LightColors
-    val extra = if (dark) {
-        ExtraColors(Color(0xFFD4B98F), Color(0xFF3A2F1C), Color(0xFF7FC8A0), Color(0xFFE5B567))
-    } else {
-        ExtraColors(Color(0xFF8E6F43), Color(0xFFF1E4CF), Color(0xFF2E7D57), Color(0xFFB7791F))
-    }
+fun YaqeenTheme(themeMode: String = "system", themeStyle: String = ThemeStyle.CLASSIC, content: @Composable () -> Unit) {
+    val dark = ThemeMode.isDark(themeMode, isSystemInDarkTheme())
+    val style = ThemeStyle.normalize(themeStyle)
+    val scheme: ColorScheme = YaqeenSchemes.scheme(style, dark)
+    val extra = YaqeenSchemes.extraColors(style, dark)
+    val extras = remember(style, dark) { YaqeenExtras.of(style, dark, scheme) }
     // التطبيق عربي بالكامل: اتجاه RTL دائمًا.
     CompositionLocalProvider(
         LocalLayoutDirection provides LayoutDirection.Rtl,
         LocalExtraColors provides extra,
+        LocalYaqeenExtras provides extras,
     ) {
-        MaterialTheme(colorScheme = scheme, typography = YaqeenTypography, shapes = YaqeenShapes, content = content)
+        MaterialTheme(colorScheme = scheme, typography = YaqeenTypography, shapes = YaqeenSchemes.shapes(style), content = content)
     }
 }

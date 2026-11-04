@@ -53,6 +53,9 @@ import app.yaqeen.core.HijriCalendar
 import app.yaqeen.data.settings.Settings
 import app.yaqeen.domain.model.Prayer
 import app.yaqeen.ui.components.EmptyState
+import app.yaqeen.ui.components.HeroCard
+import app.yaqeen.ui.components.LocalHero
+import app.yaqeen.ui.theme.Area
 import app.yaqeen.ui.components.LoadingBox
 import app.yaqeen.ui.components.YaqeenCard
 import app.yaqeen.ui.containerViewModel
@@ -232,21 +235,22 @@ private fun DateCard(date: java.time.LocalDate, isToday: Boolean, hijriAdjust: I
 @Composable
 private fun NextPrayerCard(next: NextPrayer, nowZ: ZonedDateTime, is24h: Boolean) {
     val remaining = Duration.between(nowZ, next.time).seconds
-    YaqeenCard(containerColor = MaterialTheme.colorScheme.primaryContainer) {
+    HeroCard(Area.PRAYER) {
+        val on = LocalHero.current.content
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("الصلاة القادمة", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text("الصلاة القادمة", style = MaterialTheme.typography.labelLarge, color = on)
             Text(
                 "${next.prayer.ar}  –  ${PrayerFormat.clock(next.time, is24h)}",
-                style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.headlineSmall, color = on,
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 PrayerFormat.countdown(remaining),
                 fontSize = 40.sp, fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = on,
                 style = MaterialTheme.typography.displaySmall,
             )
-            Text("متبقٍّ على الأذان", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text("متبقٍّ على الأذان", style = MaterialTheme.typography.bodySmall, color = on)
         }
     }
 }

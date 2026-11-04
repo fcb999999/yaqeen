@@ -1,5 +1,6 @@
 package app.yaqeen.feature.settings
 
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +43,12 @@ import app.yaqeen.core.ArabicText
 import app.yaqeen.data.auth.AuthState
 import app.yaqeen.data.settings.Settings
 import app.yaqeen.ui.components.ConfirmDialog
+import app.yaqeen.ui.components.HeroCard
+import app.yaqeen.ui.components.LocalHero
+import app.yaqeen.ui.theme.Area
+import app.yaqeen.ui.theme.Hue
+import app.yaqeen.ui.theme.ThemeStyle
+import app.yaqeen.ui.theme.YaqeenTheme
 import app.yaqeen.ui.components.NavRow
 import app.yaqeen.ui.components.SwitchRow
 import app.yaqeen.ui.components.YaqeenCard
@@ -55,6 +62,7 @@ private fun ChevronNavRow(
     title: String,
     subtitle: String? = null,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    hue: Hue? = null,
     onClick: () -> Unit,
 ) = NavRow(
     title = title,
@@ -62,6 +70,7 @@ private fun ChevronNavRow(
     subtitle = subtitle,
     leading = icon,
     trailing = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline) },
+    hue = hue,
 )
 
 @Composable
@@ -97,25 +106,25 @@ internal fun SettingsHomeScreen(nav: NavHostController, c: AppContainer) {
         AdhkarGroup(c)
 
         SettingsGroup("الإشعارات والصلاة") {
-            ChevronNavRow("الإشعارات", "التحكم في كل نوع من التذكيرات وأوقاتها", Icons.Filled.Notifications) { open(Routes.SETTINGS_NOTIFICATIONS) }
+            ChevronNavRow("الإشعارات", "التحكم في كل نوع من التذكيرات وأوقاتها", Icons.Filled.Notifications, Hue.AMBER) { open(Routes.SETTINGS_NOTIFICATIONS) }
             RowDivider()
-            ChevronNavRow("مواقيت الصلاة", "طريقة الحساب والمذهب والموقع", Icons.Filled.Schedule) { open(Routes.PRAYER_TIMES) }
+            ChevronNavRow("مواقيت الصلاة", "طريقة الحساب والمذهب والموقع", Icons.Filled.Schedule, Hue.TEAL) { open(Routes.PRAYER_TIMES) }
             RowDivider()
-            ChevronNavRow("المؤذن", "اختيار صوت الأذان لكل صلاة", Icons.Filled.VolumeUp) { open(SettingsRoutes.ADHAN_SETTINGS) }
+            ChevronNavRow("المؤذن", "اختيار صوت الأذان لكل صلاة", Icons.Filled.VolumeUp, Hue.GREEN) { open(SettingsRoutes.ADHAN_SETTINGS) }
         }
 
         SyncGroup(c)
 
         SettingsGroup("التخزين") {
-            ChevronNavRow("إدارة الملفات المحمّلة", "الصوتيات والتفاسير المحمّلة للاستخدام دون إنترنت", Icons.Filled.Download) { open(SettingsRoutes.QURAN_DOWNLOADS) }
+            ChevronNavRow("إدارة الملفات المحمّلة", "الصوتيات والتفاسير المحمّلة للاستخدام دون إنترنت", Icons.Filled.Download, Hue.BLUE) { open(SettingsRoutes.QURAN_DOWNLOADS) }
             RowDivider()
-            ChevronNavRow("مساحة التخزين", "حجم قاعدة البيانات والملفات والذاكرة المؤقتة", Icons.Filled.Storage) { open(SettingsRoutes.STORAGE) }
+            ChevronNavRow("مساحة التخزين", "حجم قاعدة البيانات والملفات والذاكرة المؤقتة", Icons.Filled.Storage, Hue.PINK) { open(SettingsRoutes.STORAGE) }
         }
 
         SettingsGroup("الخصوصية والبيانات") {
-            ChevronNavRow("الخصوصية", "ما نجمعه وما لا نجمعه وحقوقك", Icons.Filled.PrivacyTip) { open(SettingsRoutes.PRIVACY) }
+            ChevronNavRow("الخصوصية", "ما نجمعه وما لا نجمعه وحقوقك", Icons.Filled.PrivacyTip, Hue.GREEN) { open(SettingsRoutes.PRIVACY) }
             RowDivider()
-            ChevronNavRow("إدارة البيانات", "تصدير بياناتك أو استيرادها أو حذفها", Icons.Filled.Backup) { open(SettingsRoutes.DATA) }
+            ChevronNavRow("إدارة البيانات", "تصدير بياناتك أو استيرادها أو حذفها", Icons.Filled.Backup, Hue.CORAL) { open(SettingsRoutes.DATA) }
             Hint("بياناتك تبقى على جهازك، وإن سجّلت الدخول تُحفظ أيضًا في مساحتك الخاصة التي لا يصل إليها أحد غيرك.")
         }
 
@@ -124,11 +133,12 @@ internal fun SettingsHomeScreen(nav: NavHostController, c: AppContainer) {
                 "رقم الإصدار",
                 "${ArabicText.indic(BuildConfig.VERSION_NAME)} (${ArabicText.indic(BuildConfig.VERSION_CODE)})",
                 Icons.Filled.Tag,
+                Hue.AMBER,
             ) { open(Routes.SETTINGS_UPDATES) }
             RowDivider()
-            ChevronNavRow("التحقق من التحديثات", "تحديث التطبيق إلى أحدث إصدار", Icons.Filled.SystemUpdate) { open(Routes.SETTINGS_UPDATES) }
+            ChevronNavRow("التحقق من التحديثات", "تحديث التطبيق إلى أحدث إصدار", Icons.Filled.SystemUpdate, Hue.TEAL) { open(Routes.SETTINGS_UPDATES) }
             RowDivider()
-            ChevronNavRow("عن التطبيق", "الشكر والمصادر والتراخيص", Icons.Filled.Info) { open(SettingsRoutes.ABOUT) }
+            ChevronNavRow("عن التطبيق", "الشكر والمصادر والتراخيص", Icons.Filled.Info, Hue.BLUE) { open(SettingsRoutes.ABOUT) }
         }
 
         if (auth is AuthState.SignedIn) SignOutRow(c)
@@ -137,40 +147,53 @@ internal fun SettingsHomeScreen(nav: NavHostController, c: AppContainer) {
 
 @Composable
 private fun ProfileCard(auth: AuthState, onClick: () -> Unit) {
-    YaqeenCard(Modifier.fillMaxWidth(), onClick = onClick) {
+    val hayat = YaqeenTheme.isHayat
+    val body: @Composable ColumnScope.() -> Unit = {
+        // classic: الألوان الافتراضية للبطاقة كما كانت؛ حياة: ألوان محتوى بطاقة البطل.
+        val on = if (hayat) LocalHero.current.content else androidx.compose.ui.graphics.Color.Unspecified
+        val sub = if (hayat) on.copy(alpha = 0.88f) else MaterialTheme.colorScheme.onSurfaceVariant
+        val chevron = if (hayat) on else MaterialTheme.colorScheme.outline
         Row(verticalAlignment = Alignment.CenterVertically) {
             when (auth) {
                 is AuthState.SignedIn -> {
                     ProfileAvatar(auth.photoUrl, auth.name ?: auth.email, 56.dp)
                     Spacer(Modifier.width(16.dp))
                     androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
-                        Text(auth.name ?: "مستخدم يقين", style = MaterialTheme.typography.titleMedium)
-                        if (auth.email != null) Text(auth.email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(auth.name ?: "مستخدم يقين", style = MaterialTheme.typography.titleMedium, color = on)
+                        if (auth.email != null) Text(auth.email, style = MaterialTheme.typography.bodyMedium, color = sub)
                     }
                 }
                 else -> {
                     ProfileAvatar(null, "ي", 56.dp)
                     Spacer(Modifier.width(16.dp))
                     androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
-                        Text("وضع محلي", style = MaterialTheme.typography.titleMedium)
+                        Text("وضع محلي", style = MaterialTheme.typography.titleMedium, color = on)
                         Text(
                             if (auth == AuthState.Unavailable) "بياناتك محفوظة على هذا الجهاز فقط" else "سجّل الدخول لمزامنة بياناتك بين أجهزتك",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = sub,
                         )
                     }
                 }
             }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = chevron)
         }
     }
+    if (hayat) HeroCard(Area.SETTINGS, Modifier.fillMaxWidth(), onClick = onClick, content = body)
+    else YaqeenCard(Modifier.fillMaxWidth(), onClick = onClick, content = body)
 }
 
 @Composable
 private fun AppearanceGroup(c: AppContainer) {
     val theme by c.rememberSetting(Settings.THEME_MODE)
+    val style by c.rememberSetting(Settings.THEME_STYLE)
     val scale by c.rememberSetting(Settings.UI_FONT_SCALE)
     SettingsGroup("المظهر") {
+        ThemeStylePicker(
+            selected = ThemeStyle.normalize(style),
+            onSelect = { c.putSetting(Settings.THEME_STYLE, it) },
+        )
+        RowDivider()
         ChoiceChips(
             title = "السمة",
             options = listOf("system" to "حسب النظام", "light" to "فاتح", "dark" to "داكن"),

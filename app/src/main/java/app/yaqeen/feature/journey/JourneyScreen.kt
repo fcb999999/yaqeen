@@ -31,6 +31,9 @@ import app.yaqeen.AppContainer
 import app.yaqeen.feature.journey.JourneyFormat.n
 import app.yaqeen.feature.journey.JourneyFormat.percent
 import app.yaqeen.ui.components.EmptyState
+import app.yaqeen.ui.components.HeroCard
+import app.yaqeen.ui.components.LocalHero
+import app.yaqeen.ui.theme.Area
 import app.yaqeen.ui.components.LoadingBox
 import app.yaqeen.ui.components.ProgressBar
 import app.yaqeen.ui.components.SectionTitle
@@ -129,6 +132,20 @@ private fun PeriodSelector(period: Int, onPeriod: (Int) -> Unit) {
 
 @Composable
 private fun EncouragementCard(text: String, period: PeriodRange) {
+    if (YaqeenTheme.isHayat) {
+        // حياة: بطاقة بطل متدرجة بلون «رحلتي».
+        HeroCard(Area.JOURNEY, Modifier.fillMaxWidth()) {
+            val on = LocalHero.current.content
+            Text(text, style = MaterialTheme.typography.bodyLarge, color = on)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "الفترة المعروضة: ${JourneyFormat.range(period.from, period.to)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = on,
+            )
+        }
+        return
+    }
     YaqeenCard(containerColor = YaqeenTheme.extra.goldContainer) {
         Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(4.dp))

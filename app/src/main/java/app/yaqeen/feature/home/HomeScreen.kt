@@ -19,6 +19,15 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Mosque
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
@@ -41,7 +50,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -58,6 +70,9 @@ import app.yaqeen.feature.journey.JourneyFormat
 import app.yaqeen.feature.prayer.times.NextPrayer
 import app.yaqeen.feature.prayer.tracking.PrayerQuickRow
 import app.yaqeen.ui.components.EmptyState
+import app.yaqeen.ui.components.HeroCard
+import app.yaqeen.ui.components.IconChip
+import app.yaqeen.ui.components.LocalHero
 import app.yaqeen.ui.components.LoadingBox
 import app.yaqeen.ui.components.ProgressBar
 import app.yaqeen.ui.components.ProgressRing
@@ -65,6 +80,7 @@ import app.yaqeen.ui.components.YaqeenCard
 import app.yaqeen.ui.components.YaqeenTopBar
 import app.yaqeen.ui.containerViewModel
 import app.yaqeen.ui.navigation.Routes
+import app.yaqeen.ui.theme.Area
 import app.yaqeen.ui.theme.YaqeenTheme
 import kotlinx.coroutines.delay
 import java.time.Duration
@@ -143,30 +159,62 @@ private fun HomeContent(data: HomeData, vm: HomeViewModel, nav: NavHostControlle
 @Composable
 private fun HeaderCard(data: HomeData) {
     val hour = remember(data.date) { ZonedDateTime.now().hour }
-    YaqeenCard(containerColor = MaterialTheme.colorScheme.primaryContainer) {
-        Text("السلام عليكم", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-        Text(HomeText.greeting(hour), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+    val hayat = YaqeenTheme.isHayat
+    val texts: @Composable ColumnScope.() -> Unit = {
+        // classic: onPrimaryContainer كما كان؛ حياة: لون محتوى بطاقة البطل المتدرجة.
+        val on = if (hayat) LocalHero.current.content else MaterialTheme.colorScheme.onPrimaryContainer
+        Text("السلام عليكم", style = MaterialTheme.typography.headlineSmall, color = on)
+        Text(HomeText.greeting(hour), style = MaterialTheme.typography.bodyLarge, color = on)
         Spacer(Modifier.height(8.dp))
         Text(
             "${HijriCalendar.dayName(data.date)} – ${data.hijri.format()}",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = on,
         )
         Text(
             HijriCalendar.gregorianLabel(data.date),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = on,
         )
+    }
+    if (hayat) {
+        HeroCard(Area.HOME, Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), content = texts)
+                Spacer(Modifier.width(12.dp))
+                val o = data.overall
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ProgressRing(o.ratio, size = 76.dp, stroke = 8.dp, label = JourneyFormat.percent(o.ratio.toDouble()), onHero = true)
+                    Text("إنجاز اليوم", style = MaterialTheme.typography.labelSmall, color = LocalHero.current.content)
+                }
+            }
+        }
+    } else {
+        YaqeenCard(containerColor = MaterialTheme.colorScheme.primaryContainer, content = texts)
     }
 }
 
 // ------------------------------------------------------------ بطاقة عامة بعنوان
 
 @Composable
-private fun HomeCard(title: String, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
+private fun HomeCard(
+    title: String,
+    onClick: (() -> Unit)? = null,
+    area: Area? = null,
+    icon: ImageVector? = null,
+    content: @Composable () -> Unit,
+) {
+    val hayat = YaqeenTheme.isHayat
     YaqeenCard(Modifier.fillMaxWidth(), onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+            if (hayat && area != null && icon != null) {
+                // حياة: شارة أيقونة بلون المجال بجانب العنوان.
+                IconChip(icon, area.hue, size = 36.dp)
+                Spacer(Modifier.width(10.dp))
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+            } else {
+                Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+            }
             if (onClick != null) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
             }
@@ -182,7 +230,7 @@ private fun HomeCard(title: String, onClick: (() -> Unit)? = null, content: @Com
 private fun OverallCard(data: HomeData) {
     val o = data.overall
     val seed = data.date.toEpochDay()
-    HomeCard(HomeSections.title(HomeSections.OVERALL)) {
+    HomeCard(HomeSections.title(HomeSections.OVERALL), area = Area.HOME, icon = Icons.Filled.TrendingUp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             ProgressRing(o.ratio, size = 84.dp, stroke = 9.dp, label = JourneyFormat.percent(o.ratio.toDouble()))
             Spacer(Modifier.width(16.dp))
@@ -219,10 +267,10 @@ private fun rememberNowMillis(): State<Long> {
 private fun NextPrayerCard(vm: HomeViewModel, nav: NavHostController) {
     val st by vm.nextPrayer.collectAsStateWithLifecycle()
     when (val s = st) {
-        NextPrayerState.Loading -> HomeCard(HomeSections.title(HomeSections.NEXT_PRAYER)) {
+        NextPrayerState.Loading -> HomeCard(HomeSections.title(HomeSections.NEXT_PRAYER), area = Area.PRAYER, icon = Icons.Filled.AccessTime) {
             Text("جارٍ حساب المواقيت…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        NextPrayerState.NoLocation -> HomeCard(HomeSections.title(HomeSections.NEXT_PRAYER), onClick = { nav.navigate(Routes.PRAYER_TIMES) }) {
+        NextPrayerState.NoLocation -> HomeCard(HomeSections.title(HomeSections.NEXT_PRAYER), onClick = { nav.navigate(Routes.PRAYER_TIMES) }, area = Area.PRAYER, icon = Icons.Filled.AccessTime) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.LocationOn, null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(12.dp))
@@ -241,7 +289,7 @@ private fun NextPrayerReady(next: NextPrayer, nav: NavHostController) {
     val nowMs by rememberNowMillis()
     val remaining = Duration.between(java.time.Instant.ofEpochMilli(nowMs), next.time.toInstant())
     val spoken = HomeText.spokenRemaining(remaining)
-    HomeCard(HomeSections.title(HomeSections.NEXT_PRAYER), onClick = { nav.navigate(Routes.PRAYER_TIMES) }) {
+    HomeCard(HomeSections.title(HomeSections.NEXT_PRAYER), onClick = { nav.navigate(Routes.PRAYER_TIMES) }, area = Area.PRAYER, icon = Icons.Filled.AccessTime) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics { contentDescription = "${next.prayer.ar} $spoken" }) {
             Column(Modifier.weight(1f)) {
                 Text(next.prayer.ar, style = MaterialTheme.typography.headlineSmall)
@@ -264,7 +312,7 @@ private fun NextPrayerReady(next: NextPrayer, nav: NavHostController) {
 @Composable
 private fun PrayersCard(data: HomeData, nav: NavHostController, c: AppContainer) {
     val prayed = PrayersToday.prayed(data.prayers)
-    HomeCard(HomeSections.title(HomeSections.PRAYERS), onClick = { nav.navigate(Routes.PRAYER) }) {
+    HomeCard(HomeSections.title(HomeSections.PRAYERS), onClick = { nav.navigate(Routes.PRAYER) }, area = Area.PRAYER, icon = Icons.Filled.Mosque) {
         // الصف نفسه الذي تستعمله ميزة الصلاة: الضغط على صلاة يفتح قائمة (مسجد/بيت/لم أصلِّ بعد/مسح).
         PrayerQuickRow(c, data.date)
         Spacer(Modifier.height(8.dp))
@@ -283,7 +331,7 @@ private fun PrayersCard(data: HomeData, nav: NavHostController, c: AppContainer)
 @Composable
 private fun WirdCard(data: HomeData, nav: NavHostController) {
     if (data.wird.isEmpty()) {
-        HomeCard(HomeSections.title(HomeSections.WIRD), onClick = { nav.navigate(Routes.quranPlans()) }) {
+        HomeCard(HomeSections.title(HomeSections.WIRD), onClick = { nav.navigate(Routes.quranPlans()) }, area = Area.QURAN, icon = Icons.Filled.Flag) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Add, null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(12.dp))
@@ -292,7 +340,7 @@ private fun WirdCard(data: HomeData, nav: NavHostController) {
         }
         return
     }
-    HomeCard(HomeSections.title(HomeSections.WIRD)) {
+    HomeCard(HomeSections.title(HomeSections.WIRD), area = Area.QURAN, icon = Icons.Filled.Flag) {
         data.wird.forEachIndexed { i, w ->
             if (i > 0) HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Column(Modifier.fillMaxWidth().clickable { nav.navigate(Routes.quranPlans(w.plan.id)) }) {
@@ -325,11 +373,11 @@ private fun WirdCard(data: HomeData, nav: NavHostController) {
 private fun ContinueReadingCard(data: HomeData, nav: NavHostController) {
     val r = data.reading
     if (r == null) {
-        HomeCard(HomeSections.title(HomeSections.CONTINUE_READING), onClick = { nav.navigate(Routes.quranReader()) }) {
+        HomeCard(HomeSections.title(HomeSections.CONTINUE_READING), onClick = { nav.navigate(Routes.quranReader()) }, area = Area.QURAN, icon = Icons.Filled.MenuBook) {
             Text("لم تبدأ القراءة بعد. اضغط لفتح المصحف.", style = MaterialTheme.typography.bodyMedium)
         }
     } else {
-        HomeCard(HomeSections.title(HomeSections.CONTINUE_READING), onClick = { nav.navigate(Routes.quranReader(r.surah, r.ayah)) }) {
+        HomeCard(HomeSections.title(HomeSections.CONTINUE_READING), onClick = { nav.navigate(Routes.quranReader(r.surah, r.ayah)) }, area = Area.QURAN, icon = Icons.Filled.MenuBook) {
             val name = r.surahName?.let { "سورة $it" } ?: "السورة ${ArabicText.indic(r.surah)}"
             Text("$name – الآية ${ArabicText.indic(r.ayah)}", style = MaterialTheme.typography.titleMedium)
             Text("الصفحة ${ArabicText.indic(r.page)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -341,7 +389,7 @@ private fun ContinueReadingCard(data: HomeData, nav: NavHostController) {
 
 @Composable
 private fun AdhkarCard(data: HomeData, nav: NavHostController) {
-    HomeCard(HomeSections.title(HomeSections.ADHKAR)) {
+    HomeCard(HomeSections.title(HomeSections.ADHKAR), area = Area.ADHKAR, icon = Icons.Filled.WbSunny) {
         val rows = data.adhkar
         if (rows == null) {
             Text("جارٍ التحميل…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -374,7 +422,7 @@ private fun AdhkarCard(data: HomeData, nav: NavHostController) {
 @Composable
 private fun RawatibCard(data: HomeData, nav: NavHostController) {
     val r = data.rawatib
-    HomeCard(HomeSections.title(HomeSections.RAWATIB), onClick = { nav.navigate(Routes.PRAYER) }) {
+    HomeCard(HomeSections.title(HomeSections.RAWATIB), onClick = { nav.navigate(Routes.PRAYER) }, area = Area.PRAYER, icon = Icons.Filled.DoneAll) {
         if (r.doneDefaults == 0 && r.customDone == 0) {
             Text("لم تسجّل سننًا اليوم.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
@@ -393,7 +441,7 @@ private fun RawatibCard(data: HomeData, nav: NavHostController) {
 @Composable
 private fun TasksCard(data: HomeData, nav: NavHostController) {
     val p = data.taskProgress
-    HomeCard(HomeSections.title(HomeSections.TASKS), onClick = { nav.navigate(Routes.TASKS) }) {
+    HomeCard(HomeSections.title(HomeSections.TASKS), onClick = { nav.navigate(Routes.TASKS) }, area = Area.TASKS, icon = Icons.Filled.Checklist) {
         if (p.total == 0) {
             Text("لا مهام لليوم. أضف مهامك من صفحة المهام.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             return@HomeCard
@@ -421,7 +469,7 @@ private fun TasksCard(data: HomeData, nav: NavHostController) {
 @Composable
 private fun EventCard(data: HomeData, nav: NavHostController) {
     val e: IslamicEvent = data.event ?: return
-    HomeCard(HomeSections.title(HomeSections.EVENT), onClick = { nav.navigate(Routes.CALENDAR) }) {
+    HomeCard(HomeSections.title(HomeSections.EVENT), onClick = { nav.navigate(Routes.CALENDAR) }, area = Area.CALENDAR, icon = Icons.Filled.Event) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(e.nameAr, style = MaterialTheme.typography.titleMedium)

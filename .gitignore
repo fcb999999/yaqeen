@@ -24,3 +24,6 @@ service-account*.json
 tools/raw/
 node_modules/
 *.log
+
+# Kotlin compiler session files
+.kotlin/

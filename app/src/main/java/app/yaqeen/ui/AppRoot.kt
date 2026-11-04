@@ -1,11 +1,31 @@
 package app.yaqeen.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -58,8 +78,11 @@ import app.yaqeen.feature.settings.settingsGraph
 import app.yaqeen.feature.tasks.tasksGraph
 import app.yaqeen.ui.components.NavRow
 import app.yaqeen.ui.components.YaqeenCard
+import app.yaqeen.ui.components.YaqeenTile
 import app.yaqeen.ui.components.YaqeenTopBar
 import app.yaqeen.ui.navigation.Routes
+import app.yaqeen.ui.theme.Area
+import app.yaqeen.ui.theme.ThemeStyle
 import app.yaqeen.ui.theme.YaqeenTheme
 
 val LocalAppContainer = staticCompositionLocalOf<AppContainer> { error("AppContainer غير متاح") }
@@ -84,8 +107,9 @@ private val TABS = listOf(
 @Composable
 fun AppRoot(container: AppContainer, pendingRoute: String?, onRouteConsumed: () -> Unit) {
     val themeMode by container.settings.observe(Settings.THEME_MODE).collectAsState(initial = "system")
+    val themeStyle by container.settings.observe(Settings.THEME_STYLE).collectAsState(initial = ThemeStyle.CLASSIC)
     CompositionLocalProvider(LocalAppContainer provides container) {
-        YaqeenTheme(themeMode) {
+        YaqeenTheme(themeMode, themeStyle) {
           app.yaqeen.feature.settings.ProvideUiFontScale(container) {
             val nav = rememberNavController()
             val backStack by nav.currentBackStackEntryAsState()
@@ -104,25 +128,47 @@ fun AppRoot(container: AppContainer, pendingRoute: String?, onRouteConsumed: () 
                 }
             }
 
+            // حياة: تدرّج الترويسة يُرسم في خلفية الشاشة كلها فيشمل منطقة شريط الحالة (لا يظهر حزام بلون آخر)
+            val bg = MaterialTheme.colorScheme.background
+            val headerTint = MaterialTheme.colorScheme.primaryContainer
+            val headerFadePx = with(LocalDensity.current) { 260.dp.toPx() }
+            val rootModifier = if (YaqeenTheme.isHayat) {
+                Modifier.background(
+                    Brush.verticalGradient(
+                        listOf(headerTint.copy(alpha = if (YaqeenTheme.extras.dark) 0.30f else 0.85f), bg),
+                        startY = 0f,
+                        endY = headerFadePx,
+                    ),
+                )
+            } else Modifier
             Scaffold(
-                containerColor = MaterialTheme.colorScheme.background,
+                modifier = rootModifier,
+                containerColor = if (YaqeenTheme.isHayat) Color.Transparent else bg,
                 bottomBar = {
                     if (showBar) {
-                        NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                            TABS.forEach { tab ->
-                                val selected = backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
-                                NavigationBarItem(
-                                    selected = selected,
-                                    onClick = {
-                                        nav.navigate(tab.route) {
-                                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Icon(tab.icon, contentDescription = tab.label) },
-                                    label = { Text(tab.label) },
-                                )
+                        val select: (Tab) -> Unit = { tab ->
+                            nav.navigate(tab.route) {
+                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                        val isSelected: (Tab) -> Boolean = { tab ->
+                            backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
+                        }
+                        if (YaqeenTheme.isHayat) {
+                            // حياة: شريط عائم على شكل حبة (Scaffold يحجز ارتفاعه فلا يغطي المحتوى).
+                            HayatNavBar(TABS, isSelected, select)
+                        } else {
+                            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                                TABS.forEach { tab ->
+                                    NavigationBarItem(
+                                        selected = isSelected(tab),
+                                        onClick = { select(tab) },
+                                        icon = { Icon(tab.icon, contentDescription = tab.label) },
+                                        label = { Text(tab.label) },
+                                    )
+                                }
                             }
                         }
                     }
@@ -152,16 +198,86 @@ fun AppRoot(container: AppContainer, pendingRoute: String?, onRouteConsumed: () 
 /** تبويب "المزيد": بوابة إلى المهام والتقويم والإحصائيات والإعدادات. */
 @Composable
 private fun MoreScreen(nav: NavHostController) {
+    val entries = listOf(
+        MoreEntry("المهام اليومية", Routes.TASKS, "مهامك وتقدمك اليومي", Icons.Filled.Checklist, Area.TASKS),
+        MoreEntry("التقويم", Routes.CALENDAR, "الهجري والميلادي والمناسبات", Icons.Filled.CalendarMonth, Area.CALENDAR),
+        MoreEntry("رحلتي مع يقين", Routes.JOURNEY, "إحصائياتك الشخصية", Icons.Filled.Timeline, Area.JOURNEY),
+        MoreEntry("الإعدادات", Routes.SETTINGS, "الحساب والإشعارات والمظهر", Icons.Filled.Settings, Area.SETTINGS),
+    )
     Column(Modifier.fillMaxSize()) {
         YaqeenTopBar("المزيد")
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-            YaqeenCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
-                NavRow("المهام اليومية", { nav.navigate(Routes.TASKS) }, "مهامك وتقدمك اليومي", Icons.Filled.Checklist)
-                NavRow("التقويم", { nav.navigate(Routes.CALENDAR) }, "الهجري والميلادي والمناسبات", Icons.Filled.CalendarMonth)
-                NavRow("رحلتي مع يقين", { nav.navigate(Routes.JOURNEY) }, "إحصائياتك الشخصية", Icons.Filled.Timeline)
-                NavRow("الإعدادات", { nav.navigate(Routes.SETTINGS) }, "الحساب والإشعارات والمظهر", Icons.Filled.Settings)
+            if (YaqeenTheme.isHayat) {
+                // حياة: بلاطات ملوّنة، لكل مجال لونه.
+                Spacer(Modifier.height(4.dp))
+                entries.chunked(2).forEach { row ->
+                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        row.forEach { e ->
+                            YaqeenTile(
+                                label = e.title,
+                                icon = e.icon,
+                                onClick = { nav.navigate(e.route) },
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                hue = e.area.hue,
+                                caption = e.subtitle,
+                                labelStyle = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
+            } else {
+                YaqeenCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+                    entries.forEach { e -> NavRow(e.title, { nav.navigate(e.route) }, e.subtitle, e.icon) }
+                }
             }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+private class MoreEntry(val title: String, val route: String, val subtitle: String, val icon: ImageVector, val area: Area)
+
+/** شريط التنقل العائم لنمط «حياة»: حبة بنفسجية بأيقونات بيضاء، والعنصر المحدد داخل دائرة بيضاء. */
+@Composable
+private fun HayatNavBar(tabs: List<Tab>, isSelected: (Tab) -> Boolean, onSelect: (Tab) -> Unit) {
+    val x = YaqeenTheme.extras
+    val shape = RoundedCornerShape(36.dp)
+    Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .shadow(14.dp, shape, ambientColor = x.navContainer.copy(alpha = 0.40f), spotColor = x.navContainer.copy(alpha = 0.50f))
+                .background(x.navContainer, shape)
+                .padding(horizontal = 6.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            tabs.forEach { tab ->
+                val selected = isSelected(tab)
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(24.dp))
+                        .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(tab) })
+                        .padding(vertical = 2.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        Modifier.size(38.dp).background(if (selected) x.navSelected else Color.Transparent, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(tab.icon, contentDescription = null, tint = if (selected) x.onNavSelected else x.onNav, modifier = Modifier.size(22.dp))
+                    }
+                    Text(
+                        tab.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = x.onNav,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }
