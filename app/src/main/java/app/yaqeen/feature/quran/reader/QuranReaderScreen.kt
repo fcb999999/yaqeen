@@ -153,7 +153,7 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
     val density = LocalDensity.current
     val snackbar = remember { SnackbarHostState() }
     val appDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val palette = ReaderPalettes.resolve(prefs.background, appDark)
+    val palette = ReaderPalettes.resolve(prefs.background, appDark, app.yaqeen.ui.theme.YaqeenTheme.isNoor)
 
     // الصفحة الحالية تُحفظ عبر إعادة الإنشاء (تدوير/موت العملية)
     var savedPage by rememberSaveable { mutableIntStateOf(ready.startPage) }

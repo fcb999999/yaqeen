@@ -60,9 +60,18 @@ internal fun ThemeStylePicker(selected: String, onSelect: (String) -> Unit) {
             StyleOption(
                 style = ThemeStyle.HAYAT,
                 title = "حياة",
-                subtitle = "نابض: ألوان زاهية وبطاقات مدوّرة",
+                subtitle = "نابض: ألوان زاهية",
                 dark = dark,
                 selected = selected == ThemeStyle.HAYAT,
+                modifier = Modifier.weight(1f),
+                onSelect = onSelect,
+            )
+            StyleOption(
+                style = ThemeStyle.NOOR,
+                title = "نور",
+                subtitle = "كحلي وعاجي بزخارف المصحف",
+                dark = dark,
+                selected = selected == ThemeStyle.NOOR,
                 modifier = Modifier.weight(1f),
                 onSelect = onSelect,
             )
@@ -141,20 +150,21 @@ private fun StyleMock(style: String, dark: Boolean, modifier: Modifier) {
             }
         }
         Spacer(Modifier.weight(1f))
-        // شريط التنقل: حبة عائمة (حياة) أو شريط مسطح (كلاسيكي)
-        val navShape = RoundedCornerShape(if (hayat) 50 else 0)
+        // شريط التنقل: حبة عائمة (حياة) أو شريط مسطح (كلاسيكي ونور)
+        val pill = ex.floatingNav
+        val navShape = RoundedCornerShape(if (pill) 50 else 0)
         Row(
-            Modifier.fillMaxWidth().height(18.dp).clip(navShape).background(if (hayat) ex.navContainer else scheme.surface).padding(horizontal = 8.dp),
+            Modifier.fillMaxWidth().height(18.dp).clip(navShape).background(if (pill || ex.isNoor) ex.navContainer else scheme.surface).padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             repeat(4) { i ->
                 val on = i == 1
                 Box(
-                    Modifier.size(if (hayat && on) 11.dp else 7.dp).background(
+                    Modifier.size(if (pill && on) 11.dp else 7.dp).background(
                         when {
-                            hayat && on -> ex.navSelected
-                            hayat -> ex.onNav.copy(alpha = 0.8f)
+                            pill && on -> ex.navSelected
+                            pill -> ex.onNav.copy(alpha = 0.8f)
                             on -> scheme.primary
                             else -> scheme.outline
                         },

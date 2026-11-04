@@ -73,6 +73,7 @@ import app.yaqeen.data.quran.Surah
 import app.yaqeen.ui.LocalAppContainer
 import app.yaqeen.ui.theme.YaqeenFonts
 import app.yaqeen.ui.theme.YaqeenTextStyles
+import app.yaqeen.ui.theme.YaqeenTheme
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlin.math.PI
@@ -147,9 +148,11 @@ fun ReaderPage(
         scroll.animateScrollTo(y.roundToInt().coerceAtLeast(0))
     }
 
+    val noor = YaqeenTheme.isNoor
     Column(
         modifier.drawBehind {
-            // إطار رفيع حول الصفحة داخل الهامش كحدّ الورقة المطبوعة (لا يأخذ من عرض النص شيئًا)
+            // إطار رفيع حول الصفحة داخل الهامش كحدّ الورقة المطبوعة (لا يأخذ من عرض النص شيئًا)؛ «نور» بلا إطار كما في صوره
+            if (noor) return@drawBehind
             val inset = 3.dp.toPx()
             drawRoundRect(
                 palette.accent.copy(alpha = 0.28f),
@@ -328,6 +331,10 @@ private fun PageBody(
 
 @Composable
 private fun PageHeader(info: PageInfo, palette: ReaderPalette, margin: Dp) {
+    if (YaqeenTheme.isNoor) {
+        NoorPageHeader(info, palette, margin)
+        return
+    }
     // ترويسة مزخرفة: اسم السورة والجزء/الحزب في إطارين مدوّرين تصل بينهما خطوط ذهبية رفيعة
     Row(
         Modifier
@@ -357,6 +364,10 @@ private fun HeaderPill(label: String, palette: ReaderPalette, modifier: Modifier
 
 @Composable
 private fun PageFooter(page: Int, palette: ReaderPalette) {
+    if (YaqeenTheme.isNoor) {
+        NoorPageFooter(page, palette)
+        return
+    }
     Row(
         Modifier
             .fillMaxWidth()
@@ -404,6 +415,10 @@ private fun HizbMarkRow(label: String, palette: ReaderPalette) {
 
 @Composable
 private fun SurahBanner(surah: Surah, showBismillah: Boolean, bismillah: String, fontSize: Float, palette: ReaderPalette) {
+    if (YaqeenTheme.isNoor) {
+        NoorSurahBanner(surah, showBismillah, bismillah, fontSize, palette)
+        return
+    }
     Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             Modifier
@@ -629,4 +644,181 @@ private fun DrawScope.drawRosette(color: Color, c: Offset, radius: Float) {
     drawPath(path, color.copy(alpha = 0.10f))
     drawPath(path, color, style = Stroke(width = radius * 0.07f))
     drawCircle(color.copy(alpha = 0.55f), center = c, radius = radius * 0.70f, style = Stroke(width = radius * 0.035f))
+}
+
+// ---------------------------------------------------------------- زخارف نمط «نور»
+//
+// مستوحاة من المصاحف الرقمية المطبوعة: ترويسة واحدة بطرفين معيّنين، وإطار سورة بحليتين جانبيتين،
+// ورقم الصفحة في كبسولة صغيرة. كلها تُرسم بالكود بلون الصفحة المختارة (كريمي/أخضر/أزرق/كحلي...).
+
+private val JUZ_ORDINALS = listOf(
+    "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر",
+    "الحادي عشر", "الثاني عشر", "الثالث عشر", "الرابع عشر", "الخامس عشر", "السادس عشر", "السابع عشر",
+    "الثامن عشر", "التاسع عشر", "العشرون", "الحادي والعشرون", "الثاني والعشرون", "الثالث والعشرون",
+    "الرابع والعشرون", "الخامس والعشرون", "السادس والعشرون", "السابع والعشرون", "الثامن والعشرون",
+    "التاسع والعشرون", "الثلاثون",
+)
+
+private fun juzName(juz: Int) = "الجزء ${JUZ_ORDINALS.getOrElse(juz - 1) { ArabicText.indic(juz) }}"
+
+private fun noorLabelStyle(palette: ReaderPalette) = TextStyle(
+    fontFamily = YaqeenFonts.Quran,
+    fontSize = 15.sp,
+    lineHeight = 22.sp,
+    color = palette.text.copy(alpha = 0.85f),
+)
+
+/** كبسولة بطرفين معيّنين: جسم مدوّر بإطار مزدوج، ومعيّن مزخرف عند كل طرف. */
+@Composable
+private fun NoorCartouche(
+    palette: ReaderPalette,
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
+) {
+    Row(
+        modifier
+            .drawBehind { drawCartouche(palette) }
+            .padding(horizontal = 30.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
+}
+
+private fun DrawScope.drawCartouche(p: ReaderPalette) {
+    val h = size.height
+    val w = size.width
+    val cap = 24.dp.toPx()
+    val stroke = 1.dp.toPx()
+    val r = androidx.compose.ui.geometry.CornerRadius(h * 0.32f)
+    // الجسم
+    drawRoundRect(p.accent.copy(alpha = 0.10f), topLeft = Offset(cap, 0f), size = androidx.compose.ui.geometry.Size(w - cap * 2f, h), cornerRadius = r)
+    drawRoundRect(p.accent.copy(alpha = 0.75f), topLeft = Offset(cap, 0f), size = androidx.compose.ui.geometry.Size(w - cap * 2f, h), cornerRadius = r, style = Stroke(stroke))
+    val inset = 3.dp.toPx()
+    drawRoundRect(
+        p.accent.copy(alpha = 0.35f),
+        topLeft = Offset(cap + inset, inset),
+        size = androidx.compose.ui.geometry.Size(w - cap * 2f - inset * 2f, h - inset * 2f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.25f),
+        style = Stroke(stroke * 0.7f),
+    )
+    // الطرفان المعيّنان
+    for (cx in listOf(cap * 0.5f, w - cap * 0.5f)) {
+        val hw = cap * 0.46f
+        val hh = h * 0.36f
+        val diamond = Path().apply {
+            moveTo(cx, h / 2f - hh); lineTo(cx + hw, h / 2f); lineTo(cx, h / 2f + hh); lineTo(cx - hw, h / 2f); close()
+        }
+        drawPath(diamond, p.bg)
+        drawPath(diamond, p.accent.copy(alpha = 0.85f), style = Stroke(stroke))
+        drawRosette(p.accent, Offset(cx, h / 2f), hh * 0.42f)
+        // وصلة قصيرة بين المعيّن والجسم
+        val toward = if (cx < w / 2f) cx + hw else cx - hw
+        val bodyEdge = if (cx < w / 2f) cap else w - cap
+        drawLine(p.accent.copy(alpha = 0.6f), Offset(toward, h / 2f), Offset(bodyEdge, h / 2f), strokeWidth = stroke)
+    }
+}
+
+@Composable
+private fun NoorPageHeader(info: PageInfo, palette: ReaderPalette, margin: Dp) {
+    NoorCartouche(palette, Modifier.fillMaxWidth().padding(horizontal = margin, vertical = 8.dp)) {
+        Text(
+            "${juzName(info.juz)} | الحزب ${ArabicText.indic(info.hizb)}",
+            style = noorLabelStyle(palette),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Spacer(Modifier.weight(1f))
+        Text("سُورَةُ ${info.surah.nameAr}", style = noorLabelStyle(palette), maxLines = 1)
+    }
+}
+
+@Composable
+private fun NoorPageFooter(page: Int, palette: ReaderPalette) {
+    Box(Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) {
+        NoorCartouche(palette) {
+            Text(
+                ArabicText.indic(page),
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                color = palette.text.copy(alpha = 0.8f),
+                modifier = Modifier.padding(horizontal = 10.dp),
+            )
+        }
+    }
+}
+
+/** إطار السورة: مستطيل بإطار مزدوج، وحليتان جانبيتان بورود، ووسط بشكل سداسي مدبّب يحمل اسم السورة. */
+@Composable
+private fun NoorSurahBanner(surah: Surah, showBismillah: Boolean, bismillah: String, fontSize: Float, palette: ReaderPalette) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height((fontSize * 2.2f).coerceIn(56f, 96f).dp)
+                .drawBehind { drawNoorBanner(palette) },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "سُورَةُ ${surah.nameAr}",
+                style = TextStyle(
+                    fontFamily = YaqeenFonts.Quran,
+                    fontSize = (fontSize * 0.85f).sp,
+                    lineHeight = (fontSize * 1.3f).sp,
+                    color = palette.text,
+                    textAlign = TextAlign.Center,
+                ),
+                maxLines = 1,
+            )
+        }
+        if (showBismillah) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                bismillah,
+                style = YaqeenTextStyles.quran(fontSize, 1.7f).copy(color = palette.text, textAlign = TextAlign.Center),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+private fun DrawScope.drawNoorBanner(p: ReaderPalette) {
+    val w = size.width
+    val h = size.height
+    val s = 1.2.dp.toPx()
+    val corner = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
+    drawRoundRect(p.accent.copy(alpha = 0.12f), cornerRadius = corner)
+    drawRoundRect(p.accent.copy(alpha = 0.9f), cornerRadius = corner, style = Stroke(s * 1.3f))
+    val i = 4.dp.toPx()
+    drawRoundRect(
+        p.accent.copy(alpha = 0.5f),
+        topLeft = Offset(i, i),
+        size = androidx.compose.ui.geometry.Size(w - i * 2f, h - i * 2f),
+        cornerRadius = corner,
+        style = Stroke(s * 0.7f),
+    )
+    // الحليتان الجانبيتان
+    val panel = w * 0.24f
+    for (left in listOf(true, false)) {
+        val x0 = if (left) i * 2f else w - i * 2f - panel
+        drawRect(p.accent.copy(alpha = 0.16f), topLeft = Offset(x0, i * 2f), size = androidx.compose.ui.geometry.Size(panel, h - i * 4f))
+        val cy = h / 2f
+        val rr = (h - i * 4f) * 0.26f
+        drawRosette(p.accent, Offset(x0 + panel * 0.28f, cy), rr)
+        drawRosette(p.accent, Offset(x0 + panel * 0.72f, cy), rr)
+        val dx = x0 + panel * 0.5f
+        val dh = rr * 0.9f
+        val diamond = Path().apply { moveTo(dx, cy - dh); lineTo(dx + dh * 0.7f, cy); lineTo(dx, cy + dh); lineTo(dx - dh * 0.7f, cy); close() }
+        drawPath(diamond, p.accent.copy(alpha = 0.7f))
+    }
+    // الوسط: سداسي مدبّب الطرفين
+    val x1 = i * 2f + panel + 6.dp.toPx()
+    val x2 = w - i * 2f - panel - 6.dp.toPx()
+    val top = h * 0.16f
+    val bottom = h * 0.84f
+    val tip = (bottom - top) * 0.5f
+    val hex = Path().apply {
+        moveTo(x1, h / 2f); lineTo(x1 + tip, top); lineTo(x2 - tip, top); lineTo(x2, h / 2f); lineTo(x2 - tip, bottom); lineTo(x1 + tip, bottom); close()
+    }
+    drawPath(hex, p.bg)
+    drawPath(hex, p.accent.copy(alpha = 0.85f), style = Stroke(s))
 }

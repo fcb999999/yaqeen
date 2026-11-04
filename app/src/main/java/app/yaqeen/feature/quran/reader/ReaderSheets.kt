@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -157,7 +158,8 @@ fun ReaderSettingsSheet(c: AppContainer, prefs: ReaderPrefs, bismillah: String, 
 @Composable
 fun ReaderSettingsContent(c: AppContainer, prefs: ReaderPrefs, bismillah: String, modifier: Modifier = Modifier) {
     val appDark = MaterialTheme.colorScheme.background.let { it.red + it.green + it.blue < 1.5f }
-    val palette = ReaderPalettes.resolve(prefs.background, appDark)
+    val noor = app.yaqeen.ui.theme.YaqeenTheme.isNoor
+    val palette = ReaderPalettes.resolve(prefs.background, appDark, noor)
     var font by remember(prefs.fontSize) { mutableFloatStateOf(prefs.fontSize) }
     var line by remember(prefs.lineSpacing) { mutableFloatStateOf(prefs.lineSpacing) }
     var margin by remember(prefs.pageMargin) { mutableFloatStateOf(prefs.pageMargin.toFloat()) }
@@ -211,10 +213,13 @@ fun ReaderSettingsContent(c: AppContainer, prefs: ReaderPrefs, bismillah: String
         Spacer(Modifier.height(8.dp))
         Text("خلفية القراءة", style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            val selectedKey = if (prefs.background in listOf("sepia", "gray", "night")) prefs.background else "ivory"
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            val selectedKey = if (ReaderPalettes.all.any { it.key == prefs.background }) prefs.background else "ivory"
             for (p in ReaderPalettes.all) {
-                val shown = ReaderPalettes.resolve(p.key, appDark)
+                val shown = ReaderPalettes.resolve(p.key, appDark, noor)
                 val selected = selectedKey == p.key
                 Column(
                     Modifier

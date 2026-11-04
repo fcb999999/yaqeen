@@ -92,23 +92,45 @@ object ReaderPalettes {
     private val Gray = ReaderPalette("gray", Color(0xFFE3E5E8), Color(0xFF1F232B), Color(0xFF3F5A86), Color(0xFF5B6270), true)
     private val Night = ReaderPalette("night", YaqeenColors.Night, Color(0xFFE7EAF0), Color(0xFFD4B98F), Color(0xFF9AA3B5), false)
 
-    val all = listOf(Ivory, Sepia, Gray, Night)
+    // خلفيات بألوان المصاحف الرقمية الحديثة (كريمي، أخضر، أزرق، كحلي، أسود)
+    private val Cream = ReaderPalette("cream", Color(0xFFFFF8EE), Color(0xFF231F1A), Color(0xFF9C7B4C), Color(0xFF7E7262), true)
+    private val Green = ReaderPalette("green", Color(0xFFEEF5EA), Color(0xFF1C2A1B), Color(0xFF4F8A4A), Color(0xFF66775F), true)
+    private val Blue = ReaderPalette("blue", Color(0xFFECF2FA), Color(0xFF18212F), Color(0xFF4C74B5), Color(0xFF5F6E86), true)
+    private val Navy = ReaderPalette("navy", Color(0xFF1E284A), Color(0xFFF2ECDF), Color(0xFF9DB3EA), Color(0xFFA9B2CC), false)
+    private val Black = ReaderPalette("black", Color(0xFF000000), Color(0xFFD9D9D9), Color(0xFF9A9A9A), Color(0xFF8A8A8A), false)
+
+    val all = listOf(Ivory, Cream, Sepia, Green, Blue, Gray, Navy, Night, Black)
 
     fun label(key: String): String = when (key) {
+        "cream" -> "كريمي"
         "sepia" -> "ورقي"
+        "green" -> "أخضر"
+        "blue" -> "أزرق"
         "gray" -> "رمادي"
+        "navy" -> "كحلي"
         "night" -> "ليلي"
+        "black" -> "أسود"
         else -> "افتراضي"
     }
 
     /**
      * "ivory" هو الخيار الافتراضي المتكيّف: عاجي في المظهر الفاتح، وليلي في المظهر الداكن
-     * (حتى لا يُفاجَأ من اختار المظهر الداكن بصفحة بيضاء)؛ وبقية الخيارات تُطبَّق كما اختارها المستخدم.
+     * (حتى لا يُفاجَأ من اختار المظهر الداكن بصفحة بيضاء)؛ وفي نمط «نور»: كريمي نهارًا وكحلي ليلًا.
+     * بقية الخيارات تُطبَّق كما اختارها المستخدم.
      */
-    fun resolve(background: String, appIsDark: Boolean): ReaderPalette = when (background) {
+    fun resolve(background: String, appIsDark: Boolean, noor: Boolean = false): ReaderPalette = when (background) {
+        "cream" -> Cream
         "sepia" -> Sepia
+        "green" -> Green
+        "blue" -> Blue
         "gray" -> Gray
+        "navy" -> Navy
         "night" -> Night
-        else -> if (appIsDark) Night else Ivory
+        "black" -> Black
+        else -> when {
+            noor -> if (appIsDark) Navy else Cream
+            appIsDark -> Night
+            else -> Ivory
+        }
     }
 }

@@ -156,17 +156,30 @@ fun AppRoot(container: AppContainer, pendingRoute: String?, onRouteConsumed: () 
                         val isSelected: (Tab) -> Boolean = { tab ->
                             backStack?.destination?.hierarchy?.any { it.route == tab.route } == true
                         }
-                        if (YaqeenTheme.isHayat) {
+                        val ex = YaqeenTheme.extras
+                        if (ex.floatingNav) {
                             // حياة: شريط عائم على شكل حبة (Scaffold يحجز ارتفاعه فلا يغطي المحتوى).
                             HayatNavBar(TABS, isSelected, select)
                         } else {
-                            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                            // كلاسيكي ونور: شريط مسطّح؛ في «نور» العنصر النشط أزرق بلا خلفية كما في الصور
+                            NavigationBar(containerColor = if (ex.isNoor) ex.navContainer else MaterialTheme.colorScheme.surface) {
                                 TABS.forEach { tab ->
                                     NavigationBarItem(
                                         selected = isSelected(tab),
                                         onClick = { select(tab) },
                                         icon = { Icon(tab.icon, contentDescription = tab.label) },
                                         label = { Text(tab.label) },
+                                        colors = if (ex.isNoor) {
+                                            androidx.compose.material3.NavigationBarItemDefaults.colors(
+                                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                                indicatorColor = Color.Transparent,
+                                                unselectedIconColor = ex.onNav,
+                                                unselectedTextColor = ex.onNav,
+                                            )
+                                        } else {
+                                            androidx.compose.material3.NavigationBarItemDefaults.colors()
+                                        },
                                     )
                                 }
                             }

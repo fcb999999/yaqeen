@@ -15,11 +15,20 @@ object ThemeStyle {
     const val CLASSIC = "classic"
     const val HAYAT = "hayat"
 
-    val ALL: List<String> = listOf(CLASSIC, HAYAT)
+    /** نور: كحلي وأزرق وعاجي، بزخارف المصحف المطبوع. */
+    const val NOOR = "noor"
 
-    fun normalize(raw: String?): String = if (raw == HAYAT) HAYAT else CLASSIC
+    val ALL: List<String> = listOf(CLASSIC, HAYAT, NOOR)
+
+    fun normalize(raw: String?): String = when (raw) {
+        HAYAT -> HAYAT
+        NOOR -> NOOR
+        else -> CLASSIC
+    }
 
     fun isHayat(raw: String?): Boolean = normalize(raw) == HAYAT
+
+    fun isNoor(raw: String?): Boolean = normalize(raw) == NOOR
 }
 
 /** وضع المظهر المحفوظ في الإعدادات: system | light | dark (المجهول = system). */

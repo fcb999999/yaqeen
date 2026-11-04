@@ -157,22 +157,31 @@ object YaqeenTheme {
 
     /** هل النمط الحالي «حياة»؟ */
     val isHayat: Boolean @Composable @ReadOnlyComposable get() = LocalYaqeenExtras.current.isHayat
+
+    /** هل النمط الحالي «نور»؟ (زخارف المصحف المطبوع وخلفية الصفحة العاجية/الكحلية). */
+    val isNoor: Boolean @Composable @ReadOnlyComposable get() = LocalYaqeenExtras.current.isNoor
 }
 
 /** اختيار المخطط والألوان الإضافية حسب (النمط × الفاتح/الداكن). دوال خالصة قابلة للاختبار. */
 object YaqeenSchemes {
     fun scheme(style: String?, dark: Boolean): ColorScheme = when {
         ThemeStyle.isHayat(style) -> if (dark) HayatDarkColors else HayatLightColors
+        ThemeStyle.isNoor(style) -> if (dark) NoorDarkColors else NoorLightColors
         else -> if (dark) ClassicDarkColors else ClassicLightColors
     }
 
     fun extraColors(style: String?, dark: Boolean): ExtraColors = when {
         ThemeStyle.isHayat(style) -> if (dark) HayatExtraDark else HayatExtraLight
+        ThemeStyle.isNoor(style) -> if (dark) NoorExtraDark else NoorExtraLight
         dark -> ExtraColors(Color(0xFFD4B98F), Color(0xFF3A2F1C), Color(0xFF7FC8A0), Color(0xFFE5B567))
         else -> ExtraColors(Color(0xFF8E6F43), Color(0xFFF1E4CF), Color(0xFF2E7D57), Color(0xFFB7791F))
     }
 
-    fun shapes(style: String?): Shapes = if (ThemeStyle.isHayat(style)) HayatShapes else YaqeenShapes
+    fun shapes(style: String?): Shapes = when {
+        ThemeStyle.isHayat(style) -> HayatShapes
+        ThemeStyle.isNoor(style) -> NoorShapes
+        else -> YaqeenShapes
+    }
 }
 
 /** أنماط نص القرآن والأذكار (حجم الخط يأتي من إعدادات المستخدم). */

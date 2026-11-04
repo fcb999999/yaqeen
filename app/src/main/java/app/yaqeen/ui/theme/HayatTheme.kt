@@ -132,7 +132,16 @@ class YaqeenExtras(
     val navSelected: Color,
     val onNavSelected: Color,
 ) {
-    val isHayat: Boolean get() = style == ThemeStyle.HAYAT
+    /**
+     * تخطيطات «زاهية» (بطاقات بطل متدرّجة وبلاطات ملوّنة): في «حياة» و«نور» معًا.
+     * لما يخص «حياة» وحدها (شريط التنقل العائم) استعمل [floatingNav].
+     */
+    val isHayat: Boolean get() = style == ThemeStyle.HAYAT || style == ThemeStyle.NOOR
+
+    val isNoor: Boolean get() = style == ThemeStyle.NOOR
+
+    /** شريط التنقل العائم على شكل حبة: «حياة» فقط؛ «نور» شريط مسطّح كما في الصور. */
+    val floatingNav: Boolean get() = style == ThemeStyle.HAYAT
 
     fun hue(h: Hue): AreaPalette = palettes.getValue(h)
     fun area(a: Area): AreaPalette = hue(a.hue)
@@ -164,8 +173,19 @@ class YaqeenExtras(
             onNavSelected = if (dark) Color(0xFF4A3BB0) else Color(0xFF5A3BDD),
         )
 
-        fun of(style: String?, dark: Boolean, scheme: ColorScheme): YaqeenExtras =
-            if (ThemeStyle.isHayat(style)) hayat(dark) else classic(scheme, dark)
+        fun noor(dark: Boolean, scheme: ColorScheme): YaqeenExtras = YaqeenExtras(
+            ThemeStyle.NOOR, dark, if (dark) NoorPalettes.dark else NoorPalettes.light,
+            navContainer = if (dark) Color(0xFF18203D) else Color.White,
+            onNav = scheme.onSurfaceVariant,
+            navSelected = scheme.primaryContainer,
+            onNavSelected = scheme.primary,
+        )
+
+        fun of(style: String?, dark: Boolean, scheme: ColorScheme): YaqeenExtras = when {
+            ThemeStyle.isHayat(style) -> hayat(dark)
+            ThemeStyle.isNoor(style) -> noor(dark, scheme)
+            else -> classic(scheme, dark)
+        }
     }
 }
 
