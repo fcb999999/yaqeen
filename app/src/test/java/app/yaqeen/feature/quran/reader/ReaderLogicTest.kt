@@ -112,9 +112,9 @@ class ReaderLogicTest {
     }
 
     @Test fun markLabelNamesJuzStarts() {
-        assertEquals("بداية الجزء ١ · الحزب ١", HizbLabels.markLabel(1))
+        assertEquals("بداية الجزء ١ – الحزب ١", HizbLabels.markLabel(1))
         assertEquals("الحزب ٢", HizbLabels.markLabel(5)) // الحزب الثاني لا يبدأ جزءًا
-        assertEquals("بداية الجزء ٢ · الحزب ٣", HizbLabels.markLabel(9))
+        assertEquals("بداية الجزء ٢ – الحزب ٣", HizbLabels.markLabel(9))
         assertEquals("ربع الحزب ١", HizbLabels.markLabel(2))
     }
 

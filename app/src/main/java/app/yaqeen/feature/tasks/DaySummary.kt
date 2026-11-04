@@ -120,7 +120,7 @@ object DayEndSummary {
         if (s.rawatibUnrecorded.isNotEmpty()) parts += "سنن غير مسجّلة: ${ArabicText.indic(s.rawatibUnrecorded.size)}"
         if (s.adhkarIncomplete.isNotEmpty()) parts += "أذكار غير مكتملة: " + s.adhkarIncomplete.joinToString("، ") { it.title }
         if (s.wirdRemaining.isNotEmpty()) parts += "ورد متبقٍّ"
-        return if (parts.isEmpty()) "ما شاء الله، لا شيء متبقٍّ لهذا اليوم." else parts.joinToString(" · ")
+        return if (parts.isEmpty()) "ما شاء الله، لا شيء متبقٍّ لهذا اليوم." else parts.joinToString(" – ")
     }
 
     /** نص الإشعار العام (لا يتقادم لأن الملخص الحي يُحسب عند فتح الشاشة). */

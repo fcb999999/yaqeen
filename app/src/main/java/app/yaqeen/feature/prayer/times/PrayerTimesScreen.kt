@@ -175,8 +175,8 @@ private fun TimesContent(
             TimesList(day = dayTimes, next = next, nowZ = nowZ, isToday = dayOffset == 0, is24h = is24h)
         }
         Text(
-            "طريقة الحساب: ${CalcMethods.nameOf(calc.method)} · المذهب في العصر: ${CalcMethods.madhabName(calc.madhab)}" +
-                if (calc.adjustments.isZero) "" else " · مع تعديل يدوي",
+            "طريقة الحساب: ${CalcMethods.nameOf(calc.method)} – المذهب في العصر: ${CalcMethods.madhabName(calc.madhab)}" +
+                if (calc.adjustments.isZero) "" else " – مع تعديل يدوي",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -217,7 +217,7 @@ private fun DateCard(date: java.time.LocalDate, isToday: Boolean, hijriAdjust: I
             IconButton(onClick = onPrev) { Icon(Icons.Filled.ChevronRight, "اليوم السابق") }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    if (isToday) "اليوم · ${HijriCalendar.dayName(date)}" else HijriCalendar.dayName(date),
+                    if (isToday) "اليوم – ${HijriCalendar.dayName(date)}" else HijriCalendar.dayName(date),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(hijri.format(), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
@@ -236,7 +236,7 @@ private fun NextPrayerCard(next: NextPrayer, nowZ: ZonedDateTime, is24h: Boolean
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("الصلاة القادمة", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
             Text(
-                "${next.prayer.ar}  ·  ${PrayerFormat.clock(next.time, is24h)}",
+                "${next.prayer.ar}  –  ${PrayerFormat.clock(next.time, is24h)}",
                 style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(Modifier.height(6.dp))

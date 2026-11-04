@@ -243,7 +243,7 @@ private fun ComparisonCard(d: JourneyData, period: Int) {
                     Column(Modifier.padding(vertical = 4.dp)) {
                         Text(m.metric.label, style = MaterialTheme.typography.titleSmall)
                         Text(m.phrase(ind), style = MaterialTheme.typography.bodyMedium)
-                        Note("الآن ${n(m.current)} · السابقة ${n(m.previous)}")
+                        Note("الآن ${n(m.current)} – السابقة ${n(m.previous)}")
                     }
                 }
                 Spacer(Modifier.height(4.dp))
@@ -365,10 +365,10 @@ private fun TasksCard(d: JourneyData) {
                     RatioLine("نسبة الإنجاز", it.toFloat(), "${percent(it)} في ${ArabicNoun.DAY.count(t.daysCounted, ind)} سجّلت فيها نشاطًا. الأيام التي لم تفتح فيها شيئًا لا تُحتسب.")
                 }
                 t.bestWindow?.let {
-                    StatLine("أفضل أسبوع", "${JourneyFormat.range(it.from, it.to)} · ${percent(it.ratio)}")
+                    StatLine("أفضل أسبوع", "${JourneyFormat.range(it.from, it.to)} – ${percent(it.ratio)}")
                 }
                 t.bestDay?.let {
-                    StatLine("أفضل يوم", "${JourneyFormat.shortDate(it.to)} · ${n(it.done)} من ${n(it.total)}")
+                    StatLine("أفضل يوم", "${JourneyFormat.shortDate(it.to)} – ${n(it.done)} من ${n(it.total)}")
                 }
             }
         }

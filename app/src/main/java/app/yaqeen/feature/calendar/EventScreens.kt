@@ -180,7 +180,7 @@ fun EventsListScreen(nav: NavHostController) {
                                 Text(e.title, style = MaterialTheme.typography.titleMedium)
                                 Text(
                                     HijriCalendar.dayName(date) + " " + HijriCalendar.gregorianLabel(date) +
-                                        (ArabicFormat.time12(e.timeOfDay)?.let { " · $it" } ?: ""),
+                                        (ArabicFormat.time12(e.timeOfDay)?.let { " – $it" } ?: ""),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }

@@ -153,12 +153,12 @@ private fun ContinueCard(nav: NavHostController, c: AppContainer, load: QuranLoa
                 val frac = (p.page.toFloat() / quran.pageCount).coerceIn(0f, 1f)
                 Text("تابع القراءة", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 Text(
-                    "سورة ${QuranText.plainSurahName(surah.nameAr)} · الآية ${ArabicText.indic(p.ayah)}",
+                    "سورة ${QuranText.plainSurahName(surah.nameAr)} – الآية ${ArabicText.indic(p.ayah)}",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
-                    "صفحة ${ArabicText.indic(p.page)} · الجزء ${ArabicText.indic(p.juz)}",
+                    "صفحة ${ArabicText.indic(p.page)} – الجزء ${ArabicText.indic(p.juz)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )

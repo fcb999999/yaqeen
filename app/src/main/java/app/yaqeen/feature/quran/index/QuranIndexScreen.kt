@@ -173,7 +173,7 @@ private fun SurahList(quran: QuranData, query: String, onClick: (Surah) -> Unit)
                 Column(Modifier.weight(1f)) {
                     Text(s.nameAr, style = NameStyle, color = MaterialTheme.colorScheme.onSurface)
                     Text(
-                        "${if (s.meccan) "مكية" else "مدنية"} · ${ArabicText.indic(s.ayahCount)} آية",
+                        "${if (s.meccan) "مكية" else "مدنية"} – ${ArabicText.indic(s.ayahCount)} آية",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -245,7 +245,7 @@ private fun StartRow(badge: String, title: String, quran: QuranData, ayah: Ayah,
             // بداية المقطع: أول آية فيه كما هي (سطر واحد)
             Text(ayah.text, style = SnippetStyle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                "سورة ${QuranText.plainSurahName(quran.surah(ayah.surah).nameAr)} · الآية ${ArabicText.indic(ayah.number)}",
+                "سورة ${QuranText.plainSurahName(quran.surah(ayah.surah).nameAr)} – الآية ${ArabicText.indic(ayah.number)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

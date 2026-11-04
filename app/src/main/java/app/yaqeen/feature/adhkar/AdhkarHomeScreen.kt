@@ -106,7 +106,7 @@ private fun ContinueCard(c: ContinueUi, onOpen: (String, Int) -> Unit) {
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    if (c.isResume) "${c.categoryTitle} · الذكر ${ArabicText.indic(c.itemIndex + 1)} من ${ArabicText.indic(c.total)}"
+                    if (c.isResume) "${c.categoryTitle} – الذكر ${ArabicText.indic(c.itemIndex + 1)} من ${ArabicText.indic(c.total)}"
                     else "اقتراح بحسب وقت اليوم",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,

@@ -148,7 +148,7 @@ private fun HeaderCard(data: HomeData) {
         Text(HomeText.greeting(hour), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
         Spacer(Modifier.height(8.dp))
         Text(
-            "${HijriCalendar.dayName(data.date)} · ${data.hijri.format()}",
+            "${HijriCalendar.dayName(data.date)} – ${data.hijri.format()}",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
@@ -331,7 +331,7 @@ private fun ContinueReadingCard(data: HomeData, nav: NavHostController) {
     } else {
         HomeCard(HomeSections.title(HomeSections.CONTINUE_READING), onClick = { nav.navigate(Routes.quranReader(r.surah, r.ayah)) }) {
             val name = r.surahName?.let { "سورة $it" } ?: "السورة ${ArabicText.indic(r.surah)}"
-            Text("$name · الآية ${ArabicText.indic(r.ayah)}", style = MaterialTheme.typography.titleMedium)
+            Text("$name – الآية ${ArabicText.indic(r.ayah)}", style = MaterialTheme.typography.titleMedium)
             Text("الصفحة ${ArabicText.indic(r.page)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -379,7 +379,7 @@ private fun RawatibCard(data: HomeData, nav: NavHostController) {
             Text("لم تسجّل سننًا اليوم.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             Text(
-                "${ArabicText.indic(r.doneDefaults)} من ${ArabicText.indic(r.totalDefaults)} · ${ArabicNoun.RAKAA.count(r.rakaat) { n -> ArabicText.indic(n) }}",
+                "${ArabicText.indic(r.doneDefaults)} من ${ArabicText.indic(r.totalDefaults)} – ${ArabicNoun.RAKAA.count(r.rakaat) { n -> ArabicText.indic(n) }}",
                 style = MaterialTheme.typography.titleMedium,
             )
         }
@@ -426,7 +426,7 @@ private fun EventCard(data: HomeData, nav: NavHostController) {
             Column(Modifier.weight(1f)) {
                 Text(e.nameAr, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "${e.hijri.format()} · ${HijriCalendar.gregorianLabel(e.date)}",
+                    "${e.hijri.format()} – ${HijriCalendar.gregorianLabel(e.date)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

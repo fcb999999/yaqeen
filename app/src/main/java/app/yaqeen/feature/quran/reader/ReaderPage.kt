@@ -176,7 +176,7 @@ private fun PageHeader(info: PageInfo, palette: ReaderPalette, margin: androidx.
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                "الجزء ${ArabicText.indic(info.juz)} · الحزب ${ArabicText.indic(info.hizb)}",
+                "الجزء ${ArabicText.indic(info.juz)} – الحزب ${ArabicText.indic(info.hizb)}",
                 style = MaterialTheme.typography.labelMedium,
                 color = palette.muted,
                 maxLines = 1,
@@ -254,7 +254,7 @@ private fun SurahBanner(surah: Surah, showBismillah: Boolean, bismillah: String,
                     ),
                 )
                 Text(
-                    "${if (surah.meccan) "مكية" else "مدنية"} · ${ArabicText.indic(surah.ayahCount)} آية",
+                    "${if (surah.meccan) "مكية" else "مدنية"} – ${ArabicText.indic(surah.ayahCount)} آية",
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.muted,
                 )

@@ -69,9 +69,9 @@ object PrayerReminderPlanner {
 
     /** [adhanClock] وقت الأذان منسّقًا، [city] اسم المدينة. */
     fun text(r: PlannedReminder, adhanClock: String, city: String): String = when (r.kind) {
-        PrayerReminderKind.ADHAN -> "$city · $adhanClock"
-        PrayerReminderKind.PRE -> "الأذان الساعة $adhanClock · $city"
-        PrayerReminderKind.IQAMA -> "مضت ${PrayerFormat.minutes(r.minutes)} على أذان ${r.prayer.ar} · $city"
+        PrayerReminderKind.ADHAN -> "$city – $adhanClock"
+        PrayerReminderKind.PRE -> "الأذان الساعة $adhanClock – $city"
+        PrayerReminderKind.IQAMA -> "مضت ${PrayerFormat.minutes(r.minutes)} على أذان ${r.prayer.ar} – $city"
     }
 }
 

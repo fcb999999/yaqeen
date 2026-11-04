@@ -170,7 +170,7 @@ private fun ResultCard(quran: QuranData, a: Ayah, query: String, onClick: () -> 
     }
     YaqeenCard(Modifier.fillMaxWidth(), onClick = onClick) {
         Text(
-            "سورة ${QuranText.plainSurahName(quran.surah(a.surah).nameAr)} · الآية ${ArabicText.indic(a.number)} · صفحة ${ArabicText.indic(a.page)}",
+            "سورة ${QuranText.plainSurahName(quran.surah(a.surah).nameAr)} – الآية ${ArabicText.indic(a.number)} – صفحة ${ArabicText.indic(a.page)}",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )

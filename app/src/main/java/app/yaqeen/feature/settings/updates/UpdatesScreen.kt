@@ -189,7 +189,7 @@ private fun AvailableCard(vm: UpdatesViewModel, release: ReleaseInfo, install: I
             Column(Modifier.weight(1f)) {
                 Text("إصدار جديد متاح", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "الإصدار ${ArabicText.indic(version)}" + (release.publishedDate?.let { " · ${ArabicText.indic(it)}" } ?: ""),
+                    "الإصدار ${ArabicText.indic(version)}" + (release.publishedDate?.let { " – ${ArabicText.indic(it)}" } ?: ""),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

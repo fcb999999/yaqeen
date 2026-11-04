@@ -311,7 +311,7 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
             AnimatedVisibility(visible = !immersive) {
                 ReaderTopBar(
                     title = "سورة ${QuranText.plainSurahName(info.surah.nameAr)}",
-                    subtitle = "صفحة ${ArabicText.indic(currentPage)} · الجزء ${ArabicText.indic(info.juz)}",
+                    subtitle = "صفحة ${ArabicText.indic(currentPage)} – الجزء ${ArabicText.indic(info.juz)}",
                     menuOpen = menuOpen,
                     onMenu = { menuOpen = it },
                     onBack = { nav.popBackStack() },

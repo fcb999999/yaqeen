@@ -102,7 +102,7 @@ fun AyahActionsSheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "سورة ${QuranText.plainSurahName(quran.surah(ayah.surah).nameAr)} · الآية ${ArabicText.indic(ayah.number)}",
+                    "سورة ${QuranText.plainSurahName(quran.surah(ayah.surah).nameAr)} – الآية ${ArabicText.indic(ayah.number)}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
@@ -276,7 +276,7 @@ fun ReaderSettingsContent(c: AppContainer, prefs: ReaderPrefs, bismillah: String
         Spacer(Modifier.height(8.dp))
         SliderRow(
             label = "سرعة التمرير التلقائي",
-            valueText = "${ArabicText.indic(speed)} · ${AutoScroll.levelName(speed)}",
+            valueText = "${ArabicText.indic(speed)} – ${AutoScroll.levelName(speed)}",
             value = speed.toFloat(),
             range = AutoScroll.MIN_SPEED.toFloat()..AutoScroll.MAX_SPEED.toFloat(),
             steps = AutoScroll.MAX_SPEED - AutoScroll.MIN_SPEED - 1,

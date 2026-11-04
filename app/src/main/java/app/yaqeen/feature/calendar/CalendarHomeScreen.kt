@@ -261,7 +261,7 @@ private fun StatsCard(m: MonthUi) {
                     if (s.adhkarDays > 0) add("أيام فيها أذكار: ${ArabicText.indic(s.adhkarDays)}")
                     if (s.wirdDays > 0) add("أيام فيها قراءة ورد: ${ArabicText.indic(s.wirdDays)}")
                     if (s.tasksDone > 0) add("مهام منجزة يدويًا: ${ArabicText.indic(s.tasksDone)}")
-                }.joinToString(" · "),
+                }.joinToString(" – "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -292,7 +292,7 @@ private fun MonthEventsCard(nav: NavHostController, m: MonthUi) {
                     Column(Modifier.weight(1f)) {
                         Text(e.nameAr, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            "${HijriCalendar.dayName(e.date)} ${HijriCalendar.gregorianLabel(e.date)} · ${e.hijri.format()}",
+                            "${HijriCalendar.dayName(e.date)} ${HijriCalendar.gregorianLabel(e.date)} – ${e.hijri.format()}",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }

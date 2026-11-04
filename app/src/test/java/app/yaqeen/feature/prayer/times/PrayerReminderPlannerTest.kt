@@ -63,8 +63,8 @@ class PrayerReminderPlannerTest {
         assertEquals("صلاة المغرب بعد ١٠ دقائق", PrayerReminderPlanner.title(pre))
         assertEquals("موعد إقامة صلاة الظهر", PrayerReminderPlanner.title(iq))
         assertEquals("حان وقت صلاة الفجر", PrayerReminderPlanner.title(ad))
-        assertEquals("مضت ١٥ دقيقة على أذان الظهر · نجران", PrayerReminderPlanner.text(iq, "١١:٤٧ ص", "نجران"))
-        assertEquals("نجران · ٤:٥٠ ص", PrayerReminderPlanner.text(ad, "٤:٥٠ ص", "نجران"))
+        assertEquals("مضت ١٥ دقيقة على أذان الظهر – نجران", PrayerReminderPlanner.text(iq, "١١:٤٧ ص", "نجران"))
+        assertEquals("نجران – ٤:٥٠ ص", PrayerReminderPlanner.text(ad, "٤:٥٠ ص", "نجران"))
     }
 
     @Test fun voice_refs_parse_and_urls_validate() {

@@ -166,7 +166,7 @@ private fun PreviewCard(day: PrayerTimesDay?, loc: ResolvedLocation) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val is24h = remember { android.text.format.DateFormat.is24HourFormat(context) }
     YaqeenCard {
-        Text("معاينة مواقيت اليوم · ${loc.name}", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        Text("معاينة مواقيت اليوم – ${loc.name}", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(8.dp))
         if (day == null) {
             Text("تعذّر الحساب بهذه الإعدادات.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)

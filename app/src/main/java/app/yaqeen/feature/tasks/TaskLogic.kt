@@ -134,7 +134,7 @@ object DerivedCompletion {
         }
         return buildString {
             append("المقدار اليومي: ").append(daily)
-            if (read > 0) append(" · المقروء ").append(ArabicText.indic(read))
+            if (read > 0) append(" – المقروء ").append(ArabicText.indic(read))
         }
     }
 }

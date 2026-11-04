@@ -58,7 +58,7 @@ object HizbLabels {
     fun markLabel(hizbQuarter: Int): String {
         val hizb = hizbOf(hizbQuarter)
         return if (quarterIndex(hizbQuarter) == 0 && hizb % 2 == 1) {
-            "بداية الجزء ${ArabicText.indic(juzOfHizb(hizb))} · ${label(hizbQuarter)}"
+            "بداية الجزء ${ArabicText.indic(juzOfHizb(hizb))} – ${label(hizbQuarter)}"
         } else label(hizbQuarter)
     }
 }
