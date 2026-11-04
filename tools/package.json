@@ -1,0 +1,15 @@
+{
+  "name": "yaqeen-tools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "أدوات الإصدار والبيانات لمشروع يقين",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test notify-release.test.mjs",
+    "notify:dry": "node notify-release.mjs --dry-run"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

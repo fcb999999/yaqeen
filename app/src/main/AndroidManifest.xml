@@ -72,6 +72,22 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- الأذان: خدمة أمامية قصيرة لتشغيل صوت أذان مخصص (ميزة الصلاة) -->
+        <service
+            android:name=".feature.prayer.adhan.AdhanService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <!-- تلاوة القرآن: خدمة وسائط (Media3) تستضيف المشغّل وإشعار التحكم (ميزة القرآن) -->
+        <service
+            android:name=".feature.quran.audio.QuranPlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+
         <!-- AGENT_COMPONENTS_END: أضف أي service/receiver/activity جديد قبل هذا السطر فقط -->
     </application>
 </manifest>

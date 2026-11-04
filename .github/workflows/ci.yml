@@ -1,0 +1,71 @@
+name: CI
+
+# يعمل عند كل دفع وطلب دمج: اختبارات الوحدة + بناء نسخة debug. لا يحتاج أي أسرار.
+on:
+  push:
+    branches: ['**']
+    tags-ignore: ['v*']   # الوسوم لها workflow الإصدار
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # gradle.properties يجب أن يكون ASCII بلا BOM: BOM في أوله يُفسد اسم أول خاصية على لينكس.
+      - name: Ensure gradle.properties has no BOM
+        run: sed -i '1s/^\xEF\xBB\xBF//' gradle.properties
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # مترجم Kotlin يعمل داخل عملية Gradle (kotlin.compiler.execution.strategy=in-process في gradle.properties).
+      - name: Unit tests
+        run: ./gradlew --console=plain :app:testDebugUnitTest
+
+      - name: Build debug APK
+        run: ./gradlew --console=plain :app:assembleDebug
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: yaqeen-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+  tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Release tooling tests (no credentials)
+        run: node --test tools/notify-release.test.mjs

@@ -12,6 +12,7 @@ class YaqeenApp : Application() {
         container = AppContainer(this)
         container.start()
         Workers.schedulePeriodic(this)
+        app.yaqeen.feature.settings.updates.UpdateScheduler.schedule(this)
     }
 }
 

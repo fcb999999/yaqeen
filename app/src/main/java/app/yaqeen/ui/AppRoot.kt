@@ -86,6 +86,7 @@ fun AppRoot(container: AppContainer, pendingRoute: String?, onRouteConsumed: () 
     val themeMode by container.settings.observe(Settings.THEME_MODE).collectAsState(initial = "system")
     CompositionLocalProvider(LocalAppContainer provides container) {
         YaqeenTheme(themeMode) {
+          app.yaqeen.feature.settings.ProvideUiFontScale(container) {
             val nav = rememberNavController()
             val backStack by nav.currentBackStackEntryAsState()
             val currentRoute = backStack?.destination?.route
@@ -143,6 +144,7 @@ fun AppRoot(container: AppContainer, pendingRoute: String?, onRouteConsumed: () 
                     settingsGraph(nav, container)
                 }
             }
+          }
         }
     }
 }

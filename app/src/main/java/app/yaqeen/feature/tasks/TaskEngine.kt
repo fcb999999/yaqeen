@@ -1,9 +1,17 @@
 package app.yaqeen.feature.tasks
 
 import app.yaqeen.AppContainer
+import app.yaqeen.core.dayKey
+import app.yaqeen.data.adhkar.AdhkarCatalog
 import app.yaqeen.data.local.TaskEntity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 
 /**
@@ -26,8 +34,31 @@ data class DayProgress(val total: Int, val done: Int) {
 }
 
 class TaskEngine(private val c: AppContainer) {
-    /** مهام يوم معيّن (بعد تطبيق التكرار وأيام الأسبوع) مع حالة الإنجاز. */
-    fun observeDay(date: LocalDate): Flow<List<TodayTask>> = flowOf(emptyList())
+    /**
+     * مهام يوم معيّن (بعد تطبيق التكرار وأيام الأسبوع) مع حالة الإنجاز.
+     * تتحدّث فورًا عند أي تغيير في المهام أو الإنجازات اليدوية أو سجلات الصلاة/السنن/الأذكار/الورد.
+     * الترتيب: ذات الوقت زمنيًا، ثم بلا وقت حسب الأولوية.
+     */
+    fun observeDay(date: LocalDate): Flow<List<TodayTask>> =
+        combine(
+            c.db.tasks().observeActive(),
+            c.db.taskCompletions().observeDay(date.dayKey()),
+            observeWorshipDay(c, date),
+            catalogFlow(),
+        ) { tasks, completions, worship, catalog ->
+            val manual = completions.asSequence().filter { !it.deleted }.map { it.taskId }.toSet()
+            val items = adhkarLookup(catalog)
+            sortTodayTasks(tasks.filter { isTaskActiveOn(it, date) }.map { evaluateTask(it, manual, worship, items) })
+        }.flowOn(Dispatchers.Default)
 
-    fun observeProgress(date: LocalDate): Flow<DayProgress> = flowOf(DayProgress(0, 0))
+    fun observeProgress(date: LocalDate): Flow<DayProgress> =
+        observeDay(date).map { list -> DayProgress(list.size, list.count { it.done }) }.distinctUntilChanged()
+
+    /** لقطة واحدة (للتذكيرات والملخصات). */
+    suspend fun dayOnce(date: LocalDate): List<TodayTask> = observeDay(date).first()
+
+    private fun catalogFlow(): Flow<AdhkarCatalog?> = flow { emit(runCatching { c.adhkar() }.getOrNull()) }
+
+    private fun adhkarLookup(catalog: AdhkarCatalog?): (String) -> List<String>? =
+        { id -> catalog?.category(id)?.items?.map { it.id } }
 }
