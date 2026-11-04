@@ -27,6 +27,9 @@ jobs:
           java-version: '17'
 
       - uses: android-actions/setup-android@v3
+        with:
+          # الحزمة الافتراضية "tools" لم تعد موجودة وتُفشل الخطوة؛ يكفي SDK المثبّت أصلًا على الـ runner
+          packages: ''
 
       - uses: gradle/actions/setup-gradle@v4
 
