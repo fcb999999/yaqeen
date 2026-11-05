@@ -332,7 +332,7 @@ private fun PageBody(
 }
 
 @Composable
-private fun PageHeader(info: PageInfo, palette: ReaderPalette, margin: Dp) {
+internal fun PageHeader(info: PageInfo, palette: ReaderPalette, margin: Dp) {
     if (YaqeenTheme.isNoor) {
         NoorPageHeader(info, palette, margin)
         return
@@ -364,16 +364,17 @@ private fun HeaderPill(label: String, palette: ReaderPalette, modifier: Modifier
     )
 }
 
+/** رقم الصفحة أسفلها. [compact]: في صفحة المصحف الثابتة تُقلَّص المسافات ليبقى الارتفاع للأسطر. */
 @Composable
-private fun PageFooter(page: Int, palette: ReaderPalette) {
+internal fun PageFooter(page: Int, palette: ReaderPalette, compact: Boolean = false) {
     if (YaqeenTheme.isNoor) {
-        NoorPageFooter(page, palette)
+        NoorPageFooter(page, palette, compact)
         return
     }
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp),
+            .padding(top = if (compact) 2.dp else 16.dp, bottom = if (compact) 6.dp else 0.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
@@ -425,32 +426,7 @@ private fun SurahBanner(surah: Surah, showBismillah: Boolean, bismillah: String,
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(palette.accent.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
-                .drawBehind {
-                    // إطار مزدوج (خارجي سميك وداخلي رفيع) ووردتان عند الطرفين كترويسة السور في المصحف المطبوع
-                    val outer = 1.6.dp.toPx()
-                    val gap = 5.dp.toPx()
-                    val corner = 14.dp.toPx()
-                    drawRoundRect(
-                        palette.accent,
-                        topLeft = Offset(outer / 2f, outer / 2f),
-                        size = androidx.compose.ui.geometry.Size(size.width - outer, size.height - outer),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner),
-                        style = Stroke(outer),
-                    )
-                    val inset = outer + gap
-                    drawRoundRect(
-                        palette.accent.copy(alpha = 0.6f),
-                        topLeft = Offset(inset, inset),
-                        size = androidx.compose.ui.geometry.Size(size.width - inset * 2f, size.height - inset * 2f),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner - 3.dp.toPx()),
-                        style = Stroke(0.8.dp.toPx()),
-                    )
-                    val r = 11.dp.toPx()
-                    val edge = inset + r + 6.dp.toPx()
-                    drawRosette(palette.accent, Offset(edge, size.height / 2f), r)
-                    drawRosette(palette.accent, Offset(size.width - edge, size.height / 2f), r)
-                }
+                .drawBehind { drawClassicBanner(palette) }
                 .padding(vertical = 14.dp, horizontal = 44.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -481,6 +457,33 @@ private fun SurahBanner(surah: Surah, showBismillah: Boolean, bismillah: String,
             )
         }
     }
+}
+
+/** إطار ترويسة السورة: خلفية خفيفة وإطار مزدوج (خارجي سميك وداخلي رفيع) ووردتان عند الطرفين كالمصحف المطبوع. */
+internal fun DrawScope.drawClassicBanner(palette: ReaderPalette) {
+    val outer = 1.6.dp.toPx()
+    val gap = 5.dp.toPx()
+    val corner = 14.dp.toPx().coerceAtMost(size.height / 2f)
+    drawRoundRect(palette.accent.copy(alpha = 0.08f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner))
+    drawRoundRect(
+        palette.accent,
+        topLeft = Offset(outer / 2f, outer / 2f),
+        size = androidx.compose.ui.geometry.Size(size.width - outer, size.height - outer),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner),
+        style = Stroke(outer),
+    )
+    val inset = outer + gap
+    drawRoundRect(
+        palette.accent.copy(alpha = 0.6f),
+        topLeft = Offset(inset, inset),
+        size = androidx.compose.ui.geometry.Size(size.width - inset * 2f, size.height - inset * 2f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius((corner - 3.dp.toPx()).coerceAtLeast(0f)),
+        style = Stroke(0.8.dp.toPx()),
+    )
+    val r = 11.dp.toPx().coerceAtMost(size.height / 2f - inset - 1.dp.toPx())
+    val edge = inset + r + 6.dp.toPx()
+    drawRosette(palette.accent, Offset(edge, size.height / 2f), r)
+    drawRosette(palette.accent, Offset(size.width - edge, size.height / 2f), r)
 }
 
 /** قطر شارة الآية بالنسبة لحجم الخط (٣ خانات تُكبَّر قليلًا لتبقى الأرقام مقروءة). */
@@ -546,6 +549,7 @@ private fun AyahRunText(
     val bgTap by rememberUpdatedState(onBackgroundTap)
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     val fontPx = with(density) { style.fontSize.toPx() }
     // أرقام الشارات تُقاس مرة واحدة لكل صفحة (لا في كل إطار رسم، فالتمرير التلقائي يرسم ٦٠ إطارًا في الثانية)
     val digitLayouts = remember(spans, fontPx, measurer, density) {
@@ -561,12 +565,19 @@ private fun AyahRunText(
         },
         modifier = modifier
             .pointerInput(spans, ayahs) {
-                detectTapGestures { pos ->
-                    val l = layout
-                    val id = if (l != null) RunFormat.ayahAt(spans, l.getOffsetForPosition(pos)) else null
-                    val ayah = id?.let { i -> ayahs.firstOrNull { it.id == i } }
-                    if (ayah != null) tap(ayah) else bgTap()
-                }
+                // اللمس يُظهر الأشرطة ويخفيها؛ خدمات الآية بالضغط المطوّل عليها (كالمصاحف المطبوعة رقميًا)
+                detectTapGestures(
+                    onTap = { bgTap() },
+                    onLongPress = { pos ->
+                        val l = layout
+                        val id = if (l != null) RunFormat.ayahAt(spans, l.getOffsetForPosition(pos)) else null
+                        val ayah = id?.let { i -> ayahs.firstOrNull { it.id == i } }
+                        if (ayah != null) {
+                            haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            tap(ayah)
+                        }
+                    },
+                )
             }
             .drawWithContent {
                 // الشارة تُرسم خلف النص: ذيول الحروف تتجاوز عرض الكلمة المقيس فلا تغطيها الشارة أبدًا
@@ -630,7 +641,7 @@ private fun DrawScope.drawBadge(digits: TextLayoutResult, color: Color, center: 
     )
 }
 
-private fun DrawScope.drawRosette(color: Color, c: Offset, radius: Float) {
+internal fun DrawScope.drawRosette(color: Color, c: Offset, radius: Float) {
     val lobes = 12
     val amp = 0.07f
     val steps = 180
@@ -742,8 +753,11 @@ private fun NoorPageHeader(info: PageInfo, palette: ReaderPalette, margin: Dp) {
 }
 
 @Composable
-private fun NoorPageFooter(page: Int, palette: ReaderPalette) {
-    Box(Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) {
+private fun NoorPageFooter(page: Int, palette: ReaderPalette, compact: Boolean = false) {
+    Box(
+        Modifier.fillMaxWidth().padding(top = if (compact) 2.dp else 16.dp, bottom = if (compact) 6.dp else 0.dp),
+        contentAlignment = Alignment.Center,
+    ) {
         NoorCartouche(palette) {
             Text(
                 ArabicText.indic(page),
@@ -789,7 +803,7 @@ private fun NoorSurahBanner(surah: Surah, showBismillah: Boolean, bismillah: Str
     }
 }
 
-private fun DrawScope.drawNoorBanner(p: ReaderPalette) {
+internal fun DrawScope.drawNoorBanner(p: ReaderPalette) {
     val w = size.width
     val h = size.height
     val s = 1.2.dp.toPx()
