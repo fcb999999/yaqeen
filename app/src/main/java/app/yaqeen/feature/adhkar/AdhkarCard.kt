@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +61,8 @@ import app.yaqeen.ui.theme.YaqeenTheme
 /** إجراءات بطاقة الذكر. */
 class AdhkarCardActions(
     val onTap: () -> Unit,
+    /** إتمام الذكر دفعة واحدة دون النقر المتكرر. */
+    val onComplete: () -> Unit,
     val onFavorite: () -> Unit,
     val onBookmark: () -> Unit,
     val onShareText: () -> Unit,
@@ -128,7 +132,7 @@ fun AdhkarCard(
             Spacer(Modifier.height(8.dp))
         }
         Spacer(Modifier.height(8.dp))
-        CounterSection(progress, Modifier.align(Alignment.CenterHorizontally))
+        CounterSection(progress, actions.onComplete, Modifier.align(Alignment.CenterHorizontally))
     }
 }
 
@@ -214,24 +218,44 @@ private fun InfoBlock(label: String, body: String, container: androidx.compose.u
     }
 }
 
-/** العدّاد الدائري: يعرض المتبقي، وعند الاكتمال علامة صح. */
+/**
+ * العدّاد الدائري: يعرض المتبقي، وعند الاكتمال علامة صح. بجانبه زر «تمّ» للأذكار المكرَّرة
+ * يُتمّ الذكر دفعة واحدة لمن قرأه دون النقر مع كل مرة.
+ */
 @Composable
-private fun CounterSection(progress: ItemProgress, modifier: Modifier = Modifier) {
+private fun CounterSection(progress: ItemProgress, onComplete: () -> Unit, modifier: Modifier = Modifier) {
     val ratio by animateFloatAsState(progress.ratio, label = "adhkarRing")
+    val showDone = !progress.completed && progress.target > 1
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(84.dp), contentAlignment = Alignment.Center) {
-            ProgressRing(ratio, size = 84.dp, stroke = 7.dp)
-            if (progress.completed) {
-                Icon(Icons.Filled.CheckCircle, "مكتمل", Modifier.size(36.dp), tint = YaqeenTheme.extra.success)
-            } else {
-                Text(ArabicText.indic(progress.remaining), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // موازنة بصرية: الحلقة تبقى في الوسط والزر على جانبها
+            if (showDone) Spacer(Modifier.width(DONE_BUTTON_WIDTH + 16.dp))
+            Box(Modifier.size(84.dp), contentAlignment = Alignment.Center) {
+                ProgressRing(ratio, size = 84.dp, stroke = 7.dp)
+                if (progress.completed) {
+                    Icon(Icons.Filled.CheckCircle, "مكتمل", Modifier.size(36.dp), tint = YaqeenTheme.extra.success)
+                } else {
+                    Text(ArabicText.indic(progress.remaining), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+            if (showDone) {
+                Spacer(Modifier.width(16.dp))
+                FilledTonalButton(
+                    onClick = onComplete,
+                    modifier = Modifier.width(DONE_BUTTON_WIDTH),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                ) {
+                    Icon(Icons.Filled.DoneAll, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("تمّ")
+                }
             }
         }
         Spacer(Modifier.height(4.dp))
         when {
             progress.completed -> Text("تمّ هذا الذكر", style = MaterialTheme.typography.labelLarge, color = YaqeenTheme.extra.success)
             progress.count == 0 -> Text(
-                "اضغط على البطاقة للعدّ",
+                if (showDone) "اضغط على البطاقة للعدّ، أو «تمّ» إن أتممته" else "اضغط على البطاقة للعدّ",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -243,6 +267,8 @@ private fun CounterSection(progress: ItemProgress, modifier: Modifier = Modifier
         }
     }
 }
+
+private val DONE_BUTTON_WIDTH = 88.dp
 
 /** نافذة تعديل عدد التكرار (تقبل الأرقام العربية والهندية). */
 @Composable

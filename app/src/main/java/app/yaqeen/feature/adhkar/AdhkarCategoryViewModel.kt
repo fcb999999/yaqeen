@@ -200,6 +200,24 @@ class AdhkarCategoryViewModel(
         return TapResult(true, itemDone, categoryDone)
     }
 
+    /** إتمام الذكر دفعة واحدة (زر «تمّ»): يُسجَّل العدد كاملًا بدل النقر المتكرر. */
+    fun complete(itemId: String): TapResult {
+        val category = loaded.value?.category ?: return TapResult.NONE
+        val item = category.items.firstOrNull { it.id == itemId } ?: return TapResult.NONE
+        val cur = currentProgress(item)
+        if (cur.completed) return TapResult.NONE
+        commit(item, cur.target, cur.target)
+        val categoryDone = category.items.all { it.id == itemId || currentProgress(it).completed }
+        if (categoryDone) c.requestReschedule()
+        return TapResult(true, true, categoryDone)
+    }
+
+    /** حجم خط الأذكار (من شاشة القسم مباشرة). */
+    fun setTextSize(size: Float) {
+        val v = size.coerceIn(AdhkarPrefs.MIN_TEXT, AdhkarPrefs.MAX_TEXT)
+        c.appScope.launch { c.settings.set(app.yaqeen.data.settings.Settings.ADHKAR_TEXT_SIZE, v) }
+    }
+
     fun resetItem(itemId: String) {
         val item = loaded.value?.category?.items?.firstOrNull { it.id == itemId } ?: return
         val cur = currentProgress(item)

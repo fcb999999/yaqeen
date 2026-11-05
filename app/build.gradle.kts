@@ -134,6 +134,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
     implementation(libs.androidx.credentials)
+    implementation(libs.androidx.biometric)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)
 
