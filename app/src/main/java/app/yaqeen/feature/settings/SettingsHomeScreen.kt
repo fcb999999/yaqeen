@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Schedule
@@ -122,6 +123,10 @@ internal fun SettingsHomeScreen(nav: NavHostController, c: AppContainer) {
         }
 
         SettingsGroup("الخصوصية والبيانات") {
+            ChevronNavRow("قفل التطبيق", "رمز سري مع البصمة أو الوجه", Icons.Filled.Lock, Hue.TEAL) {
+                open(app.yaqeen.feature.settings.lock.APP_LOCK_ROUTE)
+            }
+            RowDivider()
             ChevronNavRow("الخصوصية", "ما نجمعه وما لا نجمعه وحقوقك", Icons.Filled.PrivacyTip, Hue.GREEN) { open(SettingsRoutes.PRIVACY) }
             RowDivider()
             ChevronNavRow("إدارة البيانات", "تصدير بياناتك أو استيرادها أو حذفها", Icons.Filled.Backup, Hue.CORAL) { open(SettingsRoutes.DATA) }

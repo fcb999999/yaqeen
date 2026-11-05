@@ -1,5 +1,6 @@
 package app.yaqeen.ui
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -141,8 +142,12 @@ fun AppRoot(container: AppContainer, pendingRoute: String?, onRouteConsumed: () 
                     ),
                 )
             } else Modifier
+            val lockPhase by app.yaqeen.feature.settings.lock.AppLock.phase.collectAsState()
+            val locked = lockPhase != app.yaqeen.feature.settings.lock.LockPhase.Unlocked
+            Box(Modifier.fillMaxSize()) {
             Scaffold(
-                modifier = rootModifier,
+                // ما تحت شاشة القفل لا يُقرأ لقارئ الشاشة
+                modifier = rootModifier.then(if (locked) Modifier.clearAndSetSemantics {} else Modifier),
                 containerColor = if (YaqeenTheme.isHayat) Color.Transparent else bg,
                 bottomBar = {
                     if (showBar) {
@@ -202,6 +207,14 @@ fun AppRoot(container: AppContainer, pendingRoute: String?, onRouteConsumed: () 
                     journeyGraph(nav, container)
                     settingsGraph(nav, container)
                 }
+            }
+            // التحديث الجديد يظهر للمستخدم من نفسه (لا فوق القفل ولا أثناء صفحة الترحيب)
+            app.yaqeen.feature.settings.updates.UpdatePromptHost(
+                nav = nav,
+                c = container,
+                suppressed = locked || currentRoute == Routes.ONBOARDING,
+            )
+            app.yaqeen.feature.settings.lock.AppLockOverlay(container)
             }
           }
         }

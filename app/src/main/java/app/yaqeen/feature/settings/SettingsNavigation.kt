@@ -22,6 +22,7 @@ fun NavGraphBuilder.settingsGraph(nav: NavHostController, c: AppContainer) {
         composable(SettingsRoutes.ABOUT) { AboutScreen(nav) }
         composable(SettingsRoutes.DATA) { DataManagementScreen(nav, c) }
         composable(SettingsRoutes.STORAGE) { StorageScreen(nav, c) }
+        composable(app.yaqeen.feature.settings.lock.APP_LOCK_ROUTE) { app.yaqeen.feature.settings.lock.AppLockSettingsScreen(nav, c) }
     }
     composable(Routes.ONBOARDING) { OnboardingScreen(nav, c) }
 }

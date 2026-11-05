@@ -26,6 +26,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.FormatSize
+import androidx.compose.material.icons.filled.TextDecrease
+import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -72,6 +75,7 @@ import app.yaqeen.ui.components.YaqeenTopBar
 import app.yaqeen.ui.theme.YaqeenTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
 fun AdhkarCategoryScreen(vm: AdhkarCategoryViewModel, onBack: () -> Unit) {
@@ -102,6 +106,7 @@ private fun CategoryContent(s: CategoryUi.Ready, vm: AdhkarCategoryViewModel, on
     var editing by remember { mutableStateOf<ItemUi?>(null) }
     var confirmResetAll by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
+    var fontMenu by remember { mutableStateOf(false) }
 
     fun say(message: String) {
         scope.launch {
@@ -123,8 +128,8 @@ private fun CategoryContent(s: CategoryUi.Ready, vm: AdhkarCategoryViewModel, on
         onDispose { if (touched) vm.savePosition(pagerState.currentPage) }
     }
 
-    fun onTap(item: ItemUi) {
-        val r = vm.tap(item.item.id)
+    /** ما بعد العدّ (نقرة أو «تمّ»): اهتزاز، والانتقال للذكر التالي أو للخلاصة. */
+    fun afterCount(item: ItemUi, r: TapResult) {
         if (!r.counted) return
         touched = true
         if (prefs.haptics) {
@@ -143,6 +148,10 @@ private fun CategoryContent(s: CategoryUi.Ready, vm: AdhkarCategoryViewModel, on
         }
     }
 
+    fun onTap(item: ItemUi) = afterCount(item, vm.tap(item.item.id))
+
+    fun onComplete(item: ItemUi) = afterCount(item, vm.complete(item.item.id))
+
     val colors = MaterialTheme.colorScheme
     val palette = SharePalette(
         background = colors.background.toArgb(),
@@ -155,6 +164,7 @@ private fun CategoryContent(s: CategoryUi.Ready, vm: AdhkarCategoryViewModel, on
 
     fun actionsFor(item: ItemUi) = AdhkarCardActions(
         onTap = { onTap(item) },
+        onComplete = { onComplete(item) },
         onFavorite = { vm.toggleFavorite(item.item) },
         onBookmark = { vm.toggleBookmark(item.item) },
         onShareText = { if (!AdhkarShare.shareText(context, item.item)) say("تعذّرت المشاركة") },
@@ -175,6 +185,32 @@ private fun CategoryContent(s: CategoryUi.Ready, vm: AdhkarCategoryViewModel, on
                 title = s.title,
                 onBack = onBack,
                 actions = {
+                    Box {
+                        IconButton(onClick = { fontMenu = true }) { Icon(Icons.Filled.FormatSize, contentDescription = "حجم الخط") }
+                        DropdownMenu(expanded = fontMenu, onDismissRequest = { fontMenu = false }) {
+                            Text(
+                                "حجم الخط",
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                            Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { vm.setTextSize(s.prefs.textSize - AdhkarPrefs.TEXT_STEP) },
+                                    enabled = s.prefs.textSize > AdhkarPrefs.MIN_TEXT,
+                                ) { Icon(Icons.Filled.TextDecrease, contentDescription = "تصغير الخط") }
+                                Text(
+                                    ArabicText.indic(s.prefs.textSize.roundToInt()),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.width(44.dp),
+                                )
+                                IconButton(
+                                    onClick = { vm.setTextSize(s.prefs.textSize + AdhkarPrefs.TEXT_STEP) },
+                                    enabled = s.prefs.textSize < AdhkarPrefs.MAX_TEXT,
+                                ) { Icon(Icons.Filled.TextIncrease, contentDescription = "تكبير الخط") }
+                            }
+                        }
+                    }
                     IconButton(onClick = {
                         vm.setAutoAdvance(!s.prefs.autoAdvance)
                         say(if (s.prefs.autoAdvance) "تم إيقاف الانتقال التلقائي" else "تم تفعيل الانتقال التلقائي بعد إتمام كل ذكر")

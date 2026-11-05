@@ -24,6 +24,11 @@ data class AdhkarPrefs(
     companion object {
         const val AXIS_HORIZONTAL = "horizontal"
         const val AXIS_VERTICAL = "vertical"
+
+        /** حدود حجم خط الأذكار (نفس حدود شريط الإعدادات). */
+        const val MIN_TEXT = 16f
+        const val MAX_TEXT = 40f
+        const val TEXT_STEP = 2f
     }
 }
 
