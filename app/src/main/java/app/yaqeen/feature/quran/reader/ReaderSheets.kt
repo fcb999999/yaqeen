@@ -168,6 +168,15 @@ fun ReaderSettingsContent(c: AppContainer, prefs: ReaderPrefs, bismillah: String
     val scope = c.appScope
 
     Column(modifier) {
+        SwitchRow(
+            title = "صفحات المصحف كالمطبوع",
+            subtitle = "١٥ سطرًا في كل صفحة بخط مصحف المدينة وتظهر الصفحة كاملة. أوقفه لتكبير الخط بحرية (نص متدفق)",
+            checked = prefs.mushafMode,
+            onCheckedChange = { scope.launch { c.settings.set(QuranKeys.MUSHAF_MODE, it) } },
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(Modifier.height(8.dp))
+        if (!prefs.mushafMode) {
         // معاينة حيّة بخلفية القراءة الحالية
         Box(
             Modifier
@@ -201,6 +210,7 @@ fun ReaderSettingsContent(c: AppContainer, prefs: ReaderPrefs, bismillah: String
             onChange = { line = it },
             onFinish = { scope.launch { c.settings.set(Settings.QURAN_LINE_SPACING, (line * 10).roundToInt() / 10f) } },
         )
+        }
         SliderRow(
             label = "هوامش الصفحة",
             valueText = ArabicText.indic(margin.roundToInt()),
@@ -326,6 +336,7 @@ fun ReaderSettingsContent(c: AppContainer, prefs: ReaderPrefs, bismillah: String
                     c.settings.reset(Settings.QURAN_SCROLL_SPEED)
                     c.settings.reset(QuranKeys.PAGE_MARGIN)
                     c.settings.reset(QuranKeys.FIT_PAGE)
+                    c.settings.reset(QuranKeys.MUSHAF_MODE)
                 }
             },
             onDismiss = { confirmReset = false },

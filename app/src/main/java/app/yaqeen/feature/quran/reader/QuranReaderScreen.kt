@@ -58,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -109,6 +110,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -155,6 +157,19 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
     val appDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val palette = ReaderPalettes.resolve(prefs.background, appDark, app.yaqeen.ui.theme.YaqeenTheme.isNoor)
 
+    // ترتيب صفحات المصحف المطبوع (يُحمَّل مرة ويُحفظ في الذاكرة)؛ إن تعذّر يُعرض النص المتدفق
+    val mushafLoad by produceState<Result<MushafLayout>?>(null) {
+        value = try {
+            Result.success(MushafLayoutLoader.load(context))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
+    val mushaf = if (prefs.mushafMode) mushafLoad?.getOrNull() else null
+    val mushafPending = prefs.mushafMode && mushafLoad == null
+
     // الصفحة الحالية تُحفظ عبر إعادة الإنشاء (تدوير/موت العملية)
     var savedPage by rememberSaveable { mutableIntStateOf(ready.startPage) }
     var autoMode by remember { mutableStateOf(AutoMode.Off) }
@@ -180,7 +195,7 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
     val planLogs by remember(today) { c.db.quranPlanLogs().observeRange(today.toString(), today.toString()) }.collectAsState(initial = emptyList())
     val wird = remember(wirdMath, activePlans, planLogs, today) { WirdBarLogic.build(wirdMath, activePlans, planLogs, today.toString()) }
 
-    var immersive by rememberSaveable { mutableStateOf(prefs.startFullscreen) }
+    var immersive by rememberSaveable { mutableStateOf(prefs.startFullscreen || prefs.mushafMode) }
     var sheet by remember { mutableStateOf(ReaderSheet.None) }
     var selectedAyahId by remember { mutableStateOf<Int?>(null) }
     var focusId by remember { mutableStateOf(ready.focusAyahId) }
@@ -193,8 +208,14 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
     // ---- تنظيف حالات التمرير البعيدة (تبدأ الصفحة من أعلاها عند العودة إليها)
     LaunchedEffect(currentPage) { scrollStates.keys.removeAll { abs(it - currentPage) > 1 } }
 
-    // ---- رسالة الاستئناف من جهاز آخر
-    LaunchedEffect(Unit) { ready.resumeNote?.let { snackbar.showSnackbar(it) } }
+    // ---- رسالة الاستئناف من جهاز آخر، ثم تلميح الإيماءات (مرة واحدة)
+    LaunchedEffect(Unit) {
+        ready.resumeNote?.let { snackbar.showSnackbar(it) }
+        if (!c.settings.observe(QuranKeys.GESTURE_HINT_SHOWN).first()) {
+            c.settings.set(QuranKeys.GESTURE_HINT_SHOWN, true)
+            snackbar.showSnackbar("المس الصفحة لإظهار الأدوات، واضغط مطوّلًا على الآية لخدماتها")
+        }
+    }
 
     // ---- إزالة إبراز الهدف بعد قليل
     LaunchedEffect(focusId) {
@@ -238,7 +259,7 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
         view.keepScreenOn = keepOn
         onDispose { view.keepScreenOn = false }
     }
-    ImmersiveEffect(hidden = immersive, lightStatusIcons = palette.isLight)
+    ImmersiveEffect(hidden = immersive && !prefs.mushafMode, lightStatusIcons = palette.isLight)
 
     // ---- التنقل داخل المصحف
     fun goToPage(page: Int, focusAyah: Int?) {
@@ -329,9 +350,10 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
             .fillMaxSize()
             .background(palette.bg),
     ) {
-        Column(Modifier.fillMaxSize()) {
-            AnimatedVisibility(visible = !immersive) {
-                Column {
+        val overlayBars = prefs.mushafMode
+        val topBars: @Composable () -> Unit = {
+                // خلفية معتمة: في وضع المصحف تطفو الأشرطة فوق الأسطر (شريط الورد شفاف اللون)
+                Column(Modifier.background(MaterialTheme.colorScheme.background)) {
                     ReaderTopBar(
                         title = "سورة ${QuranText.plainSurahName(info.surah.nameAr)}",
                         subtitle = "صفحة ${ArabicText.indic(currentPage)} – الجزء ${ArabicText.indic(info.juz)}",
@@ -348,7 +370,24 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
                     )
                     wird?.let { w -> WirdStrip(w, onClick = { nav.navigate(Routes.quranPlans(w.planId)) }) }
                 }
-            }
+        }
+        val bottomBar: @Composable () -> Unit = {
+                ReaderBottomBar(
+                    page = currentPage,
+                    autoMode = autoMode,
+                    speed = prefs.scrollSpeed,
+                    onStartAuto = { startAuto() },
+                    onToggleAuto = { autoMode = if (autoMode == AutoMode.Running) AutoMode.Paused else AutoMode.Running },
+                    onStopAuto = { stopAuto() },
+                    onFaster = { changeSpeed(+1) },
+                    onSlower = { changeSpeed(-1) },
+                    onJump = { openSheet(ReaderSheet.Jump) },
+                    onFullscreen = { immersive = true },
+                    onSettings = { openSheet(ReaderSheet.Settings) },
+                )
+        }
+        Column(Modifier.fillMaxSize()) {
+            if (!overlayBars) AnimatedVisibility(visible = !immersive) { topBars() }
 
             Box(
                 Modifier
@@ -356,10 +395,13 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
                     .fillMaxWidth()
                     .onUserDrag { dragCallback() },
             ) {
-                if (continuous) {
+                if (mushafPending) {
+                    LoadingBox()
+                } else if (continuous) {
                     key(contStart, contEpoch) {
                         ContinuousReader(
                             quran = quran,
+                            mushaf = mushaf,
                             prefs = prefs,
                             palette = palette,
                             startPage = contStart,
@@ -383,6 +425,22 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
                         key = { it },
                     ) { index ->
                         val page = index + 1
+                        if (mushaf != null) {
+                            MushafPage(
+                                page = page,
+                                layout = mushaf,
+                                quran = quran,
+                                prefs = prefs,
+                                palette = palette,
+                                selectedAyahId = selectedAyahId,
+                                focusAyahId = focusId,
+                                playingAyahId = audio.currentAyahId,
+                                onAyahLongPress = { onAyahTap(it) },
+                                onBackgroundTap = { immersive = !immersive },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            return@HorizontalPager
+                        }
                         val ss = remember(page) { scrollStates.getOrPut(page) { ScrollState(0) } }
                         ReaderPage(
                             page = page,
@@ -401,7 +459,7 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
                         )
                     }
                 }
-                if (immersive) {
+                if (immersive && !overlayBars) {
                     IconButton(
                         onClick = { immersive = false },
                         modifier = Modifier
@@ -419,21 +477,12 @@ private fun ReaderContent(nav: NavHostController, c: AppContainer, vm: QuranRead
 
             QuranMiniPlayer(c.quranAudio, Modifier.fillMaxWidth())
 
-            AnimatedVisibility(visible = !immersive) {
-                ReaderBottomBar(
-                    page = currentPage,
-                    autoMode = autoMode,
-                    speed = prefs.scrollSpeed,
-                    onStartAuto = { startAuto() },
-                    onToggleAuto = { autoMode = if (autoMode == AutoMode.Running) AutoMode.Paused else AutoMode.Running },
-                    onStopAuto = { stopAuto() },
-                    onFaster = { changeSpeed(+1) },
-                    onSlower = { changeSpeed(-1) },
-                    onJump = { openSheet(ReaderSheet.Jump) },
-                    onFullscreen = { immersive = true },
-                    onSettings = { openSheet(ReaderSheet.Settings) },
-                )
-            }
+            if (!overlayBars) AnimatedVisibility(visible = !immersive) { bottomBar() }
+        }
+
+        if (overlayBars) {
+            AnimatedVisibility(visible = !immersive, modifier = Modifier.align(Alignment.TopCenter)) { topBars() }
+            AnimatedVisibility(visible = !immersive, modifier = Modifier.align(Alignment.BottomCenter)) { bottomBar() }
         }
 
         SnackbarHost(
@@ -633,6 +682,7 @@ private fun BarAction(icon: ImageVector, label: String, onClick: () -> Unit) {
 @Composable
 private fun ContinuousReader(
     quran: QuranData,
+    mushaf: MushafLayout?,
     prefs: ReaderPrefs,
     palette: ReaderPalette,
     startPage: Int,
@@ -698,6 +748,22 @@ private fun ContinuousReader(
         contentPadding = PaddingValues(bottom = 48.dp),
     ) {
         items(count, key = { it }) { i ->
+            if (mushaf != null) {
+                MushafPage(
+                    page = startPage + i,
+                    layout = mushaf,
+                    quran = quran,
+                    prefs = prefs,
+                    palette = palette,
+                    selectedAyahId = selectedAyahId,
+                    focusAyahId = focusAyahId,
+                    playingAyahId = playingAyahId,
+                    onAyahLongPress = onAyahTap,
+                    onBackgroundTap = onBackgroundTap,
+                    modifier = Modifier.fillParentMaxHeight(),
+                )
+                return@items
+            }
             ContinuousPageItem(
                 page = startPage + i,
                 quran = quran,

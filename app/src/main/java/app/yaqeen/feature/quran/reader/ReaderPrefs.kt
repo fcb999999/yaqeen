@@ -18,6 +18,12 @@ object QuranKeys {
 
     /** تكبير الخط تلقائيًا ليملأ الصفحة الشاشات الكبيرة (اللوحية) بدل ترك فراغ أسفل الآيات. */
     val FIT_PAGE = BoolKey(SettingScope.USER, "quran_fit_page", true)
+
+    /** عرض صفحات المصحف كما هي مطبوعة (١٥ سطرًا ثابتًا بمحاذاة كاملة) بدل النص المتدفق بحجم خط يختاره المستخدم. */
+    val MUSHAF_MODE = BoolKey(SettingScope.USER, "quran_mushaf_mode", true)
+
+    /** عُرض تلميح «المس لإظهار الأدوات، واضغط مطوّلًا على الآية». */
+    val GESTURE_HINT_SHOWN = BoolKey(SettingScope.USER, "quran_gesture_hint_shown", false)
 }
 
 /** تفضيلات القراءة كما هي في الإعدادات (بعد التقييد بالحدود المعقولة). */
@@ -34,6 +40,8 @@ data class ReaderPrefs(
     val themeMode: String,
     /** ملاءمة حجم الخط للشاشات الكبيرة (تعمل فقط حين يكون عرض الشاشة ≥ ٦٠٠dp). */
     val fitPage: Boolean = true,
+    /** صفحات المصحف المطبوعة (حجم الخط والمسافات تخص وضع النص المتدفق فقط). */
+    val mushafMode: Boolean = true,
 ) {
     companion object {
         const val MIN_FONT = 20f
@@ -56,7 +64,9 @@ fun SettingsRepository.observeReaderPrefs(): Flow<ReaderPrefs> {
         observe(Settings.QURAN_FULLSCREEN),
         observe(Settings.QURAN_SCROLL_SPEED),
     ) { k, fs, sp -> Triple(k, fs, sp) }
-    val layout = combine(observe(QuranKeys.PAGE_MARGIN), observe(Settings.THEME_MODE), observe(QuranKeys.FIT_PAGE)) { m, t, f -> Triple(m, t, f) }
+    val layout = combine(observe(QuranKeys.PAGE_MARGIN), observe(Settings.THEME_MODE), observe(QuranKeys.FIT_PAGE), observe(QuranKeys.MUSHAF_MODE)) { m, t, f, mm ->
+        LayoutPrefs(m, t, f, mm)
+    }
     return combine(text, behavior, layout) { t, b, l ->
         ReaderPrefs(
             fontSize = t.first.coerceIn(ReaderPrefs.MIN_FONT, ReaderPrefs.MAX_FONT),
@@ -65,12 +75,15 @@ fun SettingsRepository.observeReaderPrefs(): Flow<ReaderPrefs> {
             keepScreenOn = b.first,
             startFullscreen = b.second,
             scrollSpeed = AutoScroll.clampSpeed(b.third),
-            pageMargin = l.first.coerceIn(ReaderPrefs.MIN_MARGIN, ReaderPrefs.MAX_MARGIN),
-            themeMode = l.second,
-            fitPage = l.third,
+            pageMargin = l.margin.coerceIn(ReaderPrefs.MIN_MARGIN, ReaderPrefs.MAX_MARGIN),
+            themeMode = l.theme,
+            fitPage = l.fit,
+            mushafMode = l.mushaf,
         )
     }
 }
+
+private data class LayoutPrefs(val margin: Int, val theme: String, val fit: Boolean, val mushaf: Boolean)
 
 /**
  * ألوان صفحة القراءة. خلفية القراءة اختيار صريح من المستخدم (عاجي/ورقي/رمادي/ليلي)، لذلك تُعرَّف هنا
